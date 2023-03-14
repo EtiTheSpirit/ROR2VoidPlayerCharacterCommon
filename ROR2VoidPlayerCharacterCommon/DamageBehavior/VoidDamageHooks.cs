@@ -1,5 +1,7 @@
-﻿using R2API;
+﻿using BepInEx;
+using R2API;
 using RoR2;
+using RoR2.Projectile;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -15,12 +17,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 	/// </summary>
 	public static class VoidDamageHooks {
 
+		private static readonly Dictionary<BodyIndex, BaseUnityPlugin> _manualVoidDeath = new Dictionary<BodyIndex, BaseUnityPlugin>();
+
 		internal static void Initialize() {
 			Log.LogMessage("Initializing Void Damage and Effect Hooks...");
 			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForVoidResist;
+			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForConditionalVoid;
+			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForManualVoidDeath;
 			On.RoR2.CharacterBody.SetBuffCount += InterceptBuffsEventForVoidResist;
 			On.RoR2.CharacterMaster.OnBodyDeath += PreventGameOverOnDeath;
 			On.RoR2.MusicController.RecalculateHealth += OnRecalculateHealthForLPF;
+			On.RoR2.Projectile.ProjectileController.DispatchOnInitialized += InterceptProjectileForFriendlyFire;
 			BodyCatalog.availability.onAvailable += OnCharacterBodyRegistrationComplete;
 		}
 
@@ -48,12 +55,37 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			}
 		}
 
+		internal static void RegisterForManualVoidDeath(BaseUnityPlugin registrar, BodyIndex bodyIndex) {
+			if (_manualVoidDeath.ContainsKey(bodyIndex)) {
+				throw new InvalidOperationException($"Cannot register {Helpers.BodyToString(bodyIndex)} because it was already registered by {Helpers.ModToString(registrar)}!");
+			}
+			_manualVoidDeath[bodyIndex] = registrar;
+		}
+		
+		internal static bool VerifyProperConstruction(CharacterBody body) {
+			if (!body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
+				Log.LogWarning($"Character {Helpers.BodyToString(body)} is not immune to void death!");
+				return false;
+			}
+			return true;
+		}
 
+
+		/// <summary>
+		/// Prevents the game over screen from showing momentarily, based on the death state type of the character that died.
+		/// </summary>
+		/// <param name="originalMethod"></param>
+		/// <param name="this"></param>
+		/// <param name="body"></param>
 		private static void PreventGameOverOnDeath(On.RoR2.CharacterMaster.orig_OnBodyDeath originalMethod, CharacterMaster @this, CharacterBody body) {
 			originalMethod(@this, body);
-			CharacterDeathBehavior deathBehavior = body.GetComponent<CharacterDeathBehavior>();
-			if (deathBehavior.deathState.stateType.GetInterface(nameof(IHasDelayedGameOver)) != null) {
-				@this.preventGameOver = true;
+			if (body) {
+				CharacterDeathBehavior deathBehavior = body.GetComponent<CharacterDeathBehavior>();
+				if (deathBehavior) {
+					if (deathBehavior.deathState.stateType.GetInterface(nameof(IHasDelayedGameOver)) != null) {
+						@this.preventGameOver = true;
+					}
+				}
 			}
 		}
 
@@ -78,6 +110,21 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 				}
 			}
 		}
+
+		private static void InterceptTakeDamageForManualVoidDeath(On.RoR2.HealthComponent.orig_TakeDamage originalMethod, HealthComponent @this, DamageInfo damageInfo) {
+			if (_manualVoidDeath.ContainsKey(@this.body.bodyIndex)) {
+				if (damageInfo.damageType.HasFlag(DamageType.VoidDeath) && @this.body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
+					// Can't do this. Need to remove that damage type and also make it an instant kill.
+					// Neat trick:
+					@this.Suicide(damageInfo.attacker, damageInfo.inflictor, DamageType.VoidDeath);
+					return;
+				}
+			}
+			originalMethod(@this, damageInfo);
+		}
+
+
+		#region Void Fog Resistance
 
 		/// <summary>
 		/// Intent: Do our best to see if damage from a Void Seed / Atmosphere is being dealt, and cancel it.
@@ -119,6 +166,86 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 
 			originalMethod(@this, buffType, newCount);
 		}
+
+		#endregion
+
+		#region Conditional Void Death
+
+		/// <summary>
+		/// Executes before <see cref="HealthComponent.TakeDamage(DamageInfo)"/> and conditionally applies or removes the <see cref="DamageType.VoidDeath"/> type based on the settings of the damage.
+		/// </summary>
+		/// <param name="originalMethod"></param>
+		/// <param name="this"></param>
+		/// <param name="damageInfo"></param>
+		private static void InterceptTakeDamageForConditionalVoid(On.RoR2.HealthComponent.orig_TakeDamage originalMethod, HealthComponent @this, DamageInfo damageInfo) {
+			if (damageInfo.rejected) {
+				originalMethod(@this, damageInfo);
+				return;
+			}
+
+			if (damageInfo.HasModdedDamageType(VoidDamageTypes.ConditionalVoidDeath)) {
+				GameObject attacker = damageInfo.attacker;
+				if (attacker != null) {
+					CharacterBody body = attacker.GetComponent<CharacterBody>();
+					if (body != null) {
+						Log.LogTrace("Detected TakeDamage call with Conditional Void Death!");
+						// New condition 
+						bool canInstakill;
+						CharacterBody.BodyFlags theseFlags = @this.body.bodyFlags;
+						if (theseFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath) || damageInfo.attacker == @this.gameObject) {
+							canInstakill = false;
+						} else {
+							bool isBoss = @this.body.isBoss;
+							TeamComponent victimTeam = @this.GetComponent<TeamComponent>();
+							TeamComponent attackerTeam = body.GetComponent<TeamComponent>();
+							if (victimTeam && attackerTeam && victimTeam.teamIndex == attackerTeam.teamIndex) {
+								canInstakill = CustomVoidDamageBehaviors.CanCharacterFriendlyFire(body.bodyIndex);
+							} else {
+								if (isBoss) {
+									canInstakill = CustomVoidDamageBehaviors.CanCharacterInstakillBosses(body.bodyIndex);
+								} else {
+									canInstakill = CustomVoidDamageBehaviors.CanCharacterInstakillMonsters(body.bodyIndex);
+								}
+							}
+						}
+
+						if (canInstakill) {
+							Log.LogTrace($"Intercepted damage for Conditional Void Death. Instakill has been approved, and will occur if possible.");
+							damageInfo.damageType |= DamageType.BypassArmor | DamageType.BypassBlock | DamageType.BypassOneShotProtection | DamageType.VoidDeath;
+						} else {
+							Log.LogTrace($"Intercepted damage for Conditional Void Death. Instakill has been rejected, and has been removed. Applying fallback damage instead.");
+							damageInfo.damageType &= ~DamageType.VoidDeath;
+							damageInfo.damage = body.baseDamage * CustomVoidDamageBehaviors.GetFallbackDamage(body.bodyIndex);
+						}
+					}
+				}
+			}
+			originalMethod(@this, damageInfo);
+		}
+
+		/// <summary>
+		/// Executes before dispatching a projectile, modifying its damage type.
+		/// </summary>
+		/// <param name="originalMethod"></param>
+		/// <param name="this"></param>
+		private static void InterceptProjectileForFriendlyFire(On.RoR2.Projectile.ProjectileController.orig_DispatchOnInitialized originalMethod, ProjectileController @this) {
+			DamageAPI.ModdedDamageTypeHolderComponent modDmg = @this.gameObject.GetComponent<DamageAPI.ModdedDamageTypeHolderComponent>();
+			if (modDmg && modDmg.Has(VoidDamageTypes.ConditionalVoidDeath)) {
+				if (@this.owner) {
+					CharacterBody body = @this.owner.GetComponent<CharacterBody>();
+					if (body && CustomVoidDamageBehaviors.CanCharacterFriendlyFire(body.bodyIndex)) {
+						Log.LogTrace("A projectile with Conditional Void Death was created and its creator can friendly fire. Setting its team to Neutral.");
+						TeamFilter filter = @this.gameObject.GetComponent<TeamFilter>();
+						if (!filter) filter = @this.gameObject.AddComponent<TeamFilter>();
+						filter.teamIndex = TeamIndex.Neutral;
+						@this.teamFilter = filter;
+					}
+				}
+			}
+			originalMethod(@this);
+		}
+
+		#endregion
 
 		#region Fog Types and Important Values
 

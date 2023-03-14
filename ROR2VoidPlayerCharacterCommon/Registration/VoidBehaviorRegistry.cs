@@ -12,7 +12,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 	/// <summary>
 	/// Mods that want to use Void damage related stuffs (such as void immunity) register themselves here.
 	/// </summary>
-	public static class VoidBehaviorRegistry {
+	internal static class VoidBehaviorRegistry {
 
 		private static Dictionary<BodyIndex, BaseUnityPlugin> _immunityRegistrars = new Dictionary<BodyIndex, BaseUnityPlugin>();
 

@@ -46,7 +46,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.EntityStates {
 				return;
 			}
 
-			Master.preventGameOver = false;
+			CharacterBody newBody = Master.GetBody();
+			if (newBody && newBody.healthComponent.alive) {
+				Master.preventGameOver = true;
+			} else {
+				Master.preventGameOver = false;
+			}
 		}
 
 	}
