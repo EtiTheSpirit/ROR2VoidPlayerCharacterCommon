@@ -1,0 +1,11 @@
+﻿{
+	"name": "VoidPlayerCharacterCommon",
+	"version_number": "1.0.0",
+	"website_url": "",
+	"description": "This library mod contains all common code used in the playable Void enemy mods I maintain.",
+	"dependencies": [
+		"bbepis-BepInExPack-5.4.9",
+		"RiskofThunder-HookGenPatcher-1.2.1",
+		"RiskofThunder-R2API_DamageType-1.0.3"
+	]
+}
