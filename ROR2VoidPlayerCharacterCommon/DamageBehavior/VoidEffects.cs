@@ -1,4 +1,5 @@
-﻿using R2API;
+﻿#pragma warning disable Publicizer001
+using R2API;
 using RoR2;
 using System;
 using System.Collections.Generic;

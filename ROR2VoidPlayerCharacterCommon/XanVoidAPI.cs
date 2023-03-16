@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using UnityEngine;
 using Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior;
 using Xan.ROR2VoidPlayerCharacterCommon.Registration;
+using Xan.ROR2VoidPlayerCharacterCommon.ROOInterop;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon {
 
@@ -31,9 +33,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		public static bool ShouldShowVoidDeath(DamageInfo damage) {
 			bool isBlacklisted = damage.HasModdedDamageType(VoidDamageTypes.BlacklistExaggeratedVoidDeath);
 			if (damage.damageType.HasFlag(DamageType.VoidDeath)) return !isBlacklisted;
-			if (damage.HasModdedDamageType(VoidDamageTypes.DisplayVoidDeathOnDeath)) {
+			if (damage.HasModdedDamageType(VoidDamageTypes.DisplayVoidDeathOnKill)) {
 				if (isBlacklisted) {
-					Log.LogError("Malformed damage type; someone has flagged the damage type as one to cause the Lost Seer's Lenses effect, but also gave it the type telling it to *not* do this! Make up your mind!");
+					Log.LogError("Malformed damage type; someone has flagged the damage type as one to cause the void death effect, but also gave it the type telling it to *not* do this! Make up your mind!");
 					Log.LogError((new StackTrace()).ToString());
 					Log.LogWarning($"Attacker: {damage.attacker}");
 				}
@@ -77,7 +79,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// <param name="bodyIndex">The <see cref="CharacterBody"/> to register, by its index.</param>
 		public static void RegisterAsVoidEntity(BaseUnityPlugin registrar, BodyIndex bodyIndex) {
 			VoidBehaviorRegistry.RegisterForVoidImmunities(registrar, bodyIndex);
-			VoidDamageHooks.RegisterForManualVoidDeath(registrar, bodyIndex);
+			// VoidDamageHooks.RegisterForManualVoidDeath(registrar, bodyIndex);
 		}
 
 		/// <summary>
@@ -86,14 +88,14 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// <param name="body"></param>
 		public static bool VerifyProperConstruction(CharacterBody body) {
 			bool a = VoidBehaviorRegistry.VerifyProperConstruction(body);
-			bool b = VoidDamageHooks.VerifyProperConstruction(body);
-			return a && b;
+			// bool b = VoidDamageHooks.VerifyProperConstruction(body);
+			return a;
 		}
 
 		/// <summary>
 		/// Register the provided <see cref="BodyIndex"/> with that mod's associated config options. These config options can be used to override the global defaults for void damage behavior.
 		/// <para/>
-		/// If you don't want to make these config options yourself, see <see cref="CreateAndRegisterBlackHoleBehaviorConfigs(BaseUnityPlugin, ConfigFile, BodyIndex)"/>
+		/// If you don't want to make these config options yourself, see <see cref="CreateAndRegisterBlackHoleBehaviorConfigs(BaseUnityPlugin, AdvancedConfigBuilder, BodyIndex)"/>
 		/// </summary>
 		/// <param name="registrar"></param>
 		/// <param name="bodyIndex"></param>
@@ -110,14 +112,16 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// This can be called by implementors to automatically add the settings for controlling the black hole.
 		/// </summary>
 		/// <param name="registrar"></param>
-		/// <param name="cfg"></param>
+		/// <param name="aCfg"></param>
 		/// <param name="bodyIndex"></param>
-		public static void CreateAndRegisterBlackHoleBehaviorConfigs(BaseUnityPlugin registrar, ConfigFile cfg, BodyIndex bodyIndex) {
-			ConfigEntry<bool> useModSettings = cfg.Bind("Void Character API", "Use Settings from This Mod", false, "If true, the settings in this category will be used to control the behavior of the black hole. If false, the global settings that come with the Void Character API will be used instead.");
-			ConfigEntry<bool> allowInstakillMonsters = cfg.Bind("Void Character API", "Black Holes Instakill Monsters", true, "You probably want this to be true. This setting allows black holes from void deaths to instakill monsters.");
-			ConfigEntry<bool> allowInstakillBosses = cfg.Bind("Void Character API", "Black Holes Instakill Bosses", false, "You probably want this to be false. This setting allows black holes from void deaths to instakill bosses, with the exception of Mithrix and Voidling who are immune to this type of damage.");
-			ConfigEntry<bool> allowFriendlyFire = cfg.Bind("Void Character API", "Black Hole Friendly Fire", true, "If true, black holes spawned by friendly void players can, much like those of friendly void NPCs, kill players.");
-			ConfigEntry<float> fallbackDamage = cfg.Bind("Void Character API", "Black Hole Fallback Damage", 750f, "This value, as a multiplier (1 is 1x, 2 is 2x, ...), is applied to the player's base damage if their black hole cannot kill an enemy, boss or otherwise.");
+		public static void CreateAndRegisterBlackHoleBehaviorConfigs(BaseUnityPlugin registrar, AdvancedConfigBuilder aCfg, BodyIndex bodyIndex) {
+			aCfg.SetCategory("Void Common API");
+			const string blackHoleDisclaimer = "<style=cIsVoid><style=cIsHealth>Host only.</style> This applies strictly only to player characters that have void deaths. This does not affect AI in any way.</style>\n\n";
+			ConfigEntry<bool> useModSettings = aCfg.Bind("Use Mod Settings", false, "If true, the settings in this category will be used. If false, the equivalent settings in Void Common API's Global settings will be used instead.");
+			ConfigEntry<bool> allowInstakillMonsters = aCfg.Bind("Instakill Monsters", true, $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>monsters</style> via void death. If false, the fallback damage will apply.");
+			ConfigEntry<bool> allowInstakillBosses = aCfg.Bind("Instakill Bosses", false, $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>bosses</style> via void death. If false, the fallback damage will apply.");
+			ConfigEntry<bool> allowFriendlyFire = aCfg.Bind("Friendly Fire", true, $"{blackHoleDisclaimer}If true, black holes can also kill members of the same team (such as player to player kills).");
+			ConfigEntry<float> fallbackDamage = aCfg.Bind("Fallback Damage", 250f, $"{blackHoleDisclaimer}This value, as a multiplier (1 is 1x, 2 is 2x, ...), is applied to the player's base damage if their black hole cannot kill an enemy, boss or otherwise. It is recommended to make this value relatively high.", 0f, 1000f, 1, formatString: "{0}x");
 			RegisterBlackHoleBehaviorOverrides(registrar, bodyIndex, useModSettings, allowInstakillMonsters, allowInstakillBosses, allowFriendlyFire, fallbackDamage);
 		}
 
@@ -166,12 +170,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 				result.Append($"deals <style=cIsDamage>{((int)Math.Floor(fallback)) * 100}% base damage</style> to all");
 				bool and = false;
 				if (!monsters) {
-					result.Append(" monsters");
+					result.Append(" <style=cIsDamage>monsters</style>");
 					and = true;
 				}
 				if (!bosses) {
 					if (and) result.Append(" and");
-					result.Append(" bosses");
+					result.Append(" <style=cIsDamage>bosses</style>");
 				}
 				result.Append(" caught within its radius.");
 			}

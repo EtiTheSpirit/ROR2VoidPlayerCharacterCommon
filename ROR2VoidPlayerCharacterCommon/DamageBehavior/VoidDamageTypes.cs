@@ -20,11 +20,11 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 		/// 1: Already includes <see cref="DamageType.VoidDeath"/>, or<br/>
 		/// 2: Uses <see cref="BlacklistExaggeratedVoidDeath"/>
 		/// </summary>
-		public static ModdedDamageType DisplayVoidDeathOnDeath { get; private set; }
+		public static ModdedDamageType DisplayVoidDeathOnKill { get; private set; }
 
 		/// <summary>
 		/// This damage type can be applied to tell the Exaggerated Void Death mod's effects to not apply. This should strictly be used iff the incoming damage type has <see cref="DamageType.VoidDeath"/>.
-		/// If the damage type has <see cref="DisplayVoidDeathOnDeath"/> and you use this, you are literally applying the thing and then canceling it out. Just remove it 16384head.
+		/// If the damage type has <see cref="DisplayVoidDeathOnKill"/> and you use this, you are literally applying the thing and then canceling it out. Just remove it 16384head.
 		/// </summary>
 		public static ModdedDamageType BlacklistExaggeratedVoidDeath { get; private set; }
 
@@ -34,14 +34,22 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 		/// </summary>
 		public static ModdedDamageType ConditionalVoidDeath { get; private set; }
 
+		/// <summary>
+		/// This is useful if fog needs to damage void characters anyway, such as through some ability. Applying this damage type to a <see cref="DamageInfo"/> matching the characteristics of Void Fog
+		/// will make it able to damage void characters, even if they resist fog. <strong>This does not affect visual fog.</strong>
+		/// </summary>
+		public static ModdedDamageType BypassFogResistance { get; private set; }
+
 		internal static void Initialize() {
 			Log.LogInfo("Initializing Void Damage Types...");
-			Log.LogTrace($"Visual Void Death ({nameof(VoidDamageTypes)}::{nameof(DisplayVoidDeathOnDeath)})...");
-			DisplayVoidDeathOnDeath = ReserveDamageType();
+			Log.LogTrace($"Visual Void Death ({nameof(VoidDamageTypes)}::{nameof(DisplayVoidDeathOnKill)})...");
+			DisplayVoidDeathOnKill = ReserveDamageType();
 			Log.LogTrace($"Exaggerated Void Death Blacklist ({nameof(VoidDamageTypes)}::{nameof(BlacklistExaggeratedVoidDeath)})...");
 			BlacklistExaggeratedVoidDeath = ReserveDamageType();
 			Log.LogTrace($"Conditional Void Death ({nameof(VoidDamageTypes)}::{nameof(ConditionalVoidDeath)})...");
 			ConditionalVoidDeath = ReserveDamageType();
+			Log.LogTrace($"Bypass Fog Resistance ({nameof(VoidDamageTypes)}::{nameof(BypassFogResistance)})...");
+			BypassFogResistance = ReserveDamageType();
 		}
 
 	}

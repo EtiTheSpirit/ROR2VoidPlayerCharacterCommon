@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿#pragma warning disable Publicizer001
+using BepInEx;
 using R2API;
 using RoR2;
 using RoR2.Projectile;
@@ -23,7 +24,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			Log.LogMessage("Initializing Void Damage and Effect Hooks...");
 			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForVoidResist;
 			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForConditionalVoid;
-			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForManualVoidDeath;
+			On.RoR2.HealthComponent.TakeDamage += InterceptTakeDamageForVoidDeathOnKill;
 			On.RoR2.CharacterBody.SetBuffCount += InterceptBuffsEventForVoidResist;
 			On.RoR2.CharacterMaster.OnBodyDeath += PreventGameOverOnDeath;
 			On.RoR2.MusicController.RecalculateHealth += OnRecalculateHealthForLPF;
@@ -55,21 +56,6 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			}
 		}
 
-		internal static void RegisterForManualVoidDeath(BaseUnityPlugin registrar, BodyIndex bodyIndex) {
-			if (_manualVoidDeath.ContainsKey(bodyIndex)) {
-				throw new InvalidOperationException($"Cannot register {Helpers.BodyToString(bodyIndex)} because it was already registered by {Helpers.ModToString(registrar)}!");
-			}
-			_manualVoidDeath[bodyIndex] = registrar;
-		}
-		
-		internal static bool VerifyProperConstruction(CharacterBody body) {
-			if (!body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
-				Log.LogWarning($"Character {Helpers.BodyToString(body)} is not immune to void death!");
-				return false;
-			}
-			return true;
-		}
-
 
 		/// <summary>
 		/// Prevents the game over screen from showing momentarily, based on the death state type of the character that died.
@@ -82,8 +68,11 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			if (body) {
 				CharacterDeathBehavior deathBehavior = body.GetComponent<CharacterDeathBehavior>();
 				if (deathBehavior) {
-					if (deathBehavior.deathState.stateType.GetInterface(nameof(IHasDelayedGameOver)) != null) {
-						@this.preventGameOver = true;
+					Type stateType = deathBehavior.deathState.stateType;
+					if (stateType != null) {
+						if (stateType.GetInterface(nameof(IHasDelayedGameOver)) != null) {
+							@this.preventGameOver = true;
+						}
 					}
 				}
 			}
@@ -111,16 +100,33 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			}
 		}
 
-		private static void InterceptTakeDamageForManualVoidDeath(On.RoR2.HealthComponent.orig_TakeDamage originalMethod, HealthComponent @this, DamageInfo damageInfo) {
-			if (_manualVoidDeath.ContainsKey(@this.body.bodyIndex)) {
-				if (damageInfo.damageType.HasFlag(DamageType.VoidDeath) && @this.body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
-					// Can't do this. Need to remove that damage type and also make it an instant kill.
-					// Neat trick:
-					@this.Suicide(damageInfo.attacker, damageInfo.inflictor, DamageType.VoidDeath);
-					return;
-				}
+		/// <summary>
+		/// This method ties into <see cref="VoidDamageTypes.ConditionalVoidDeath"/>. If damage won't kill an enemy, it should apply like normal damage, however if the damage *will* kill an enemy
+		/// then it needs to be flagged as <see cref="DamageType.VoidDeath"/> iff that enemy is not immune to it, so that the proper VFX displays.
+		/// </summary>
+		/// <param name="originalMethod"></param>
+		/// <param name="this"></param>
+		/// <param name="damageInfo"></param>
+		/// <exception cref="NotImplementedException"></exception>
+		private static void InterceptTakeDamageForVoidDeathOnKill(On.RoR2.HealthComponent.orig_TakeDamage originalMethod, HealthComponent @this, DamageInfo damageInfo) {
+			bool skip =																			// Skip if...
+				   !@this.body																	// ...the body is missing, or
+				|| damageInfo.rejected															// ...the damage has already been rejected by something else, or
+				|| damageInfo.damageType.HasFlag(DamageType.VoidDeath)							// ...the damage is already classified as void death, or
+				|| @this.body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)		// ...the receiving body is immune to void death, or
+				|| !damageInfo.HasModdedDamageType(VoidDamageTypes.DisplayVoidDeathOnKill);		// ...the damage is not registered to cause the vfx.
+
+
+			if (skip) {
+				originalMethod(@this, damageInfo);
+				return;
 			}
+
+			bool wasAlive = @this.alive;
 			originalMethod(@this, damageInfo);
+			if (damageInfo.rejected) return; // Do nothing if someone rejected the damage from occurring.
+
+			if (wasAlive && !@this.alive) @this.killingDamageType = DamageType.VoidDeath; // Modify this.
 		}
 
 
@@ -138,7 +144,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 				return;
 			}
 
-			if (@this.body != null && VoidBehaviorRegistry.IsImmuneToVoidFog(@this.body.bodyIndex)) {
+			if (@this.body != null && VoidBehaviorRegistry.IsImmuneToVoidFog(@this.body.bodyIndex) && !damageInfo.HasModdedDamageType(VoidDamageTypes.BypassFogResistance)) {
 				if (damageInfo.attacker == null && damageInfo.inflictor == null && damageInfo.damageType == NO_BLOCK_NO_ARMOR) {
 					Log.LogTrace("Rejecting damage for what I believe to be Void atmosphere damage (it has no source/attacker, and the damage type bypasses blocks and armor only).");
 					damageInfo.rejected = true;
