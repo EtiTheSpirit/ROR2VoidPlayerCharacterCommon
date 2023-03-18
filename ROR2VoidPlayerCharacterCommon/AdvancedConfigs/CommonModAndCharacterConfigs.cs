@@ -410,8 +410,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs {
 		/// </summary>
 		/// <param name="controller"></param>
 		public void AutoAssignTransparencyController(TransparencyController controller) {
-			controller._getTransparencyInCombat = () => TransparencyInCombat;
-			controller._getTransparencyOutOfCombat = () => TransparencyOutOfCombat;
+			controller.getTransparencyInCombat = () => TransparencyInCombat;
+			controller.getTransparencyOutOfCombat = () => TransparencyOutOfCombat;
 		}
 
 		/// <summary>
