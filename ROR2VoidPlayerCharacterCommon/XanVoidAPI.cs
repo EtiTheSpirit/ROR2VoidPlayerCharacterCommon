@@ -5,8 +5,10 @@ using RoR2;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
+using Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked;
 using Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior;
 using Xan.ROR2VoidPlayerCharacterCommon.Registration;
 using Xan.ROR2VoidPlayerCharacterCommon.ROOInterop;
@@ -104,7 +106,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// <param name="allowInstakillBosses"></param>
 		/// <param name="allowFriendlyFire"></param>
 		/// <param name="fallbackDamage"></param>
-		public static void RegisterBlackHoleBehaviorOverrides(BaseUnityPlugin registrar, BodyIndex bodyIndex, ConfigEntry<bool> useModSettings, ConfigEntry<bool> allowInstakillMonsters, ConfigEntry<bool> allowInstakillBosses, ConfigEntry<bool> allowFriendlyFire, ConfigEntry<float> fallbackDamage) {
+		public static void RegisterBlackHoleBehaviorOverrides(BaseUnityPlugin registrar, BodyIndex bodyIndex, ConfigEntry<bool> useModSettings, ReplicatedConfigEntry<bool> allowInstakillMonsters, ReplicatedConfigEntry<bool> allowInstakillBosses, ReplicatedConfigEntry<bool> allowFriendlyFire, ReplicatedConfigEntry<float> fallbackDamage) {
 			CustomVoidDamageBehaviors.RegisterConfigProxy(registrar, bodyIndex, useModSettings, allowInstakillMonsters, allowInstakillBosses, allowFriendlyFire, fallbackDamage);
 		}
 
@@ -116,12 +118,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// <param name="bodyIndex"></param>
 		public static void CreateAndRegisterBlackHoleBehaviorConfigs(BaseUnityPlugin registrar, AdvancedConfigBuilder aCfg, BodyIndex bodyIndex) {
 			aCfg.SetCategory("Void Common API");
-			const string blackHoleDisclaimer = "<style=cIsVoid><style=cIsHealth>Host only.</style> This applies strictly only to player characters that have void deaths. This does not affect AI in any way.</style>\n\n";
-			ConfigEntry<bool> useModSettings = aCfg.Bind("Use Mod Settings", false, "If true, the settings in this category will be used. If false, the equivalent settings in Void Common API's Global settings will be used instead.");
-			ConfigEntry<bool> allowInstakillMonsters = aCfg.Bind("Instakill Monsters", true, $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>monsters</style> via void death. If false, the fallback damage will apply.");
-			ConfigEntry<bool> allowInstakillBosses = aCfg.Bind("Instakill Bosses", false, $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>bosses</style> via void death. If false, the fallback damage will apply.");
-			ConfigEntry<bool> allowFriendlyFire = aCfg.Bind("Friendly Fire", true, $"{blackHoleDisclaimer}If true, black holes can also kill members of the same team (such as player to player kills).");
-			ConfigEntry<float> fallbackDamage = aCfg.Bind("Fallback Damage", 250f, $"{blackHoleDisclaimer}This value, as a multiplier (1 is 1x, 2 is 2x, ...), is applied to the player's base damage if their black hole cannot kill an enemy, boss or otherwise. It is recommended to make this value relatively high.", 0f, 1000f, 1, formatString: "{0}x");
+			const string blackHoleDisclaimer = "<style=cIsVoid>This applies strictly only to player characters that have void deaths. This does not affect AI in any way.</style>\n\n";
+			ConfigEntry<bool> useModSettings = aCfg.BindLocal("Use Mod Settings", "If true, the settings in this category will be used. If false, the equivalent settings in Void Common API's Global settings will be used instead.", false);
+			ReplicatedConfigEntry<bool> allowInstakillMonsters = aCfg.BindReplicated("Instakill Monsters", $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>monsters</style> via void death. If false, the fallback damage will apply.", true);
+			ReplicatedConfigEntry<bool> allowInstakillBosses = aCfg.BindReplicated("Instakill Bosses", $"{blackHoleDisclaimer}If true, black holes will instantly kill all <style=cIsDamage>bosses</style> via void death. If false, the fallback damage will apply.", false);
+			ReplicatedConfigEntry<bool> allowFriendlyFire = aCfg.BindReplicated("Friendly Fire", $"{blackHoleDisclaimer}If true, black holes can also kill members of the same team (such as player to player kills).", true);
+			ReplicatedConfigEntry<float> fallbackDamage = aCfg.BindReplicated("Fallback Damage", $"{blackHoleDisclaimer}This value, as a multiplier (1 is 1x, 2 is 2x, ...), is applied to the player's base damage if their black hole cannot kill an enemy, boss or otherwise. It is recommended to make this value relatively high.", 100f, 0f, 1000f, 1, formatString: "{0}x");
 			RegisterBlackHoleBehaviorOverrides(registrar, bodyIndex, useModSettings, allowInstakillMonsters, allowInstakillBosses, allowFriendlyFire, fallbackDamage);
 		}
 
@@ -182,5 +184,24 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 
 			return result.ToString();
 		}
+
+
+
+		/// <summary>
+		/// Overrides a language token if it's present already. This is internal because it bypasses what LanguageAPI was made for, but that's okay if it's used sparingly.
+		/// </summary>
+		/// <param name="token"></param>
+		/// <param name="value"></param>
+		public static void AddOrReplaceLang(string token, string value) {
+			if (_languageApiCustomLanguage == null) {
+				FieldInfo customLangFld = typeof(LanguageAPI).GetField("CustomLanguage", BindingFlags.NonPublic | BindingFlags.Static);
+				_languageApiCustomLanguage = (Dictionary<string, Dictionary<string, string>>)customLangFld.GetValue(null);
+			}
+			_genericLang ??= _languageApiCustomLanguage["generic"];
+			_genericLang[token] = value;
+		}
+
+		private static Dictionary<string, Dictionary<string, string>> _languageApiCustomLanguage = null;
+		private static Dictionary<string, string> _genericLang = null;
 	}
 }

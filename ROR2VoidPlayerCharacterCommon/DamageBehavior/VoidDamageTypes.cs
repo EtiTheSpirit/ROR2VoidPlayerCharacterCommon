@@ -35,6 +35,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 		public static ModdedDamageType ConditionalVoidDeath { get; private set; }
 
 		/// <summary>
+		/// This damage type is an extension to <see cref="ConditionalVoidDeath"/> that enforces an instakill can never actually happen, meaning the fallback damage
+		/// (see <see cref="XanVoidAPI.GetFallbackDamage(BodyIndex)"/>) is always used to determine what to do.
+		/// </summary>
+		public static ModdedDamageType NeverVoidDeath { get; private set; }
+
+		/// <summary>
 		/// This is useful if fog needs to damage void characters anyway, such as through some ability. Applying this damage type to a <see cref="DamageInfo"/> matching the characteristics of Void Fog
 		/// will make it able to damage void characters, even if they resist fog. <strong>This does not affect visual fog.</strong>
 		/// </summary>
@@ -48,6 +54,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			BlacklistExaggeratedVoidDeath = ReserveDamageType();
 			Log.LogTrace($"Conditional Void Death ({nameof(VoidDamageTypes)}::{nameof(ConditionalVoidDeath)})...");
 			ConditionalVoidDeath = ReserveDamageType();
+			Log.LogTrace($"Never Void Death ({nameof(VoidDamageTypes)}::{nameof(NeverVoidDeath)})...");
+			NeverVoidDeath = ReserveDamageType();
 			Log.LogTrace($"Bypass Fog Resistance ({nameof(VoidDamageTypes)}::{nameof(BypassFogResistance)})...");
 			BypassFogResistance = ReserveDamageType();
 		}

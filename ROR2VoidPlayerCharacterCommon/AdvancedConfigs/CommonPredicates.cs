@@ -1,6 +1,9 @@
-﻿using System;
+﻿using RoR2;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine.Networking;
+using static RiskOfOptions.OptionConfigs.BaseOptionConfig;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs {
 	
@@ -10,10 +13,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs {
 	public static class CommonPredicates {
 
 		/// <summary>
-		/// This returns true outside of a run
+		/// Returns true if the player is the host, or if there is no active run.
 		/// </summary>
-		[Obsolete("This has not been implemented yet and will do nothing.", true)]
-		public static readonly Func<bool> HostOnly = () => true; // TODO
+		public static readonly IsDisabledDelegate ONLY_ENABLE_AS_HOST = () => !NetworkServer.active && Run.instance != null;
 
 	}
 }

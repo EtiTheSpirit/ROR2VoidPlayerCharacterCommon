@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 
@@ -16,7 +17,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 		private static readonly Dictionary<BodyIndex, ConfigProxy> _settings = new Dictionary<BodyIndex, ConfigProxy>();
 		private static readonly Dictionary<BodyIndex, BaseUnityPlugin> _owners = new Dictionary<BodyIndex, BaseUnityPlugin>();
 
-		internal static void RegisterConfigProxy(BaseUnityPlugin registrar, BodyIndex bodyIndex, ConfigEntry<bool> useModSettings, ConfigEntry<bool> allowInstakillMonsters, ConfigEntry<bool> allowInstakillBosses, ConfigEntry<bool> allowFriendlyFire, ConfigEntry<float> fallbackDamage) {
+		internal static void RegisterConfigProxy(BaseUnityPlugin registrar, BodyIndex bodyIndex, ConfigEntry<bool> useModSettings, ReplicatedConfigEntry<bool> allowInstakillMonsters, ReplicatedConfigEntry<bool> allowInstakillBosses, ReplicatedConfigEntry<bool> allowFriendlyFire, ReplicatedConfigEntry<float> fallbackDamage) {
 			if (registrar == null) {
 				throw new ArgumentNullException(nameof(registrar));
 			}
@@ -55,7 +56,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 
 			public static readonly ConfigProxy DEFAULT = new ConfigProxy();
 
-			private T Get<T>(ConfigEntry<T> modProvided, T globalDefault) where T : struct {
+			private T Get<T>(ReplicatedConfigEntry<T> modProvided, T globalDefault) where T : struct {
 				if (ReferenceEquals(this, DEFAULT)) return globalDefault;
 
 				bool useModSettings = _useModSettings?.Value ?? true;
@@ -71,17 +72,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 
 			public float FallbackDamage => Get(_fallbackDamage, Configuration.BlackHoleBackupDamage);
 
-			private ConfigEntry<bool> _useModSettings;
+			private readonly ConfigEntry<bool> _useModSettings;
 
-			private ConfigEntry<bool> _allowInstakillMonsters;
+			private readonly ReplicatedConfigEntry<bool> _allowInstakillMonsters;
 
-			private ConfigEntry<bool> _allowInstakillBosses;
+			private readonly ReplicatedConfigEntry<bool> _allowInstakillBosses;
 
-			private ConfigEntry<bool> _allowFriendlyFire;
+			private readonly ReplicatedConfigEntry<bool> _allowFriendlyFire;
 
-			private ConfigEntry<float> _fallbackDamage;
+			private readonly ReplicatedConfigEntry<float> _fallbackDamage;
 
-			public ConfigProxy(ConfigEntry<bool> useModSettings, ConfigEntry<bool> allowInstakillMonsters, ConfigEntry<bool> allowInstakillBosses, ConfigEntry<bool> allowFriendlyFire, ConfigEntry<float> fallbackDamage) {
+			public ConfigProxy(ConfigEntry<bool> useModSettings, ReplicatedConfigEntry<bool> allowInstakillMonsters, ReplicatedConfigEntry<bool> allowInstakillBosses, ReplicatedConfigEntry<bool> allowFriendlyFire, ReplicatedConfigEntry<float> fallbackDamage) {
 				this._useModSettings = useModSettings;
 				this._allowInstakillMonsters = allowInstakillMonsters;
 				this._allowInstakillBosses = allowInstakillBosses;

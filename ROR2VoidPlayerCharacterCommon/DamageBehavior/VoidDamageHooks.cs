@@ -33,26 +33,29 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 		}
 
 		private static void OnCharacterBodyRegistrationComplete() {
-			if (Configuration.EnforceVoidNativeImmunity) {
-				Log.LogTrace("Making all void enemies immune to the fog (they do not care that the fog is coming)...");
-				BodyIndex infestor = BodyCatalog.FindBodyIndex("VoidInfestorBody");
-				BodyIndex barnacle = BodyCatalog.FindBodyIndex("VoidBarnacleBody");
-				BodyIndex reaver = BodyCatalog.FindBodyIndex("NullifierBody");
-				BodyIndex jailer = BodyCatalog.FindBodyIndex("VoidJailerBody");
-				BodyIndex devastator = BodyCatalog.FindBodyIndex("VoidMegaCrabBody");
-				BodyIndex reaverAlly = BodyCatalog.FindBodyIndex("NullifierAllyBody");
-				BodyIndex jailerAlly = BodyCatalog.FindBodyIndex("VoidJailerAllyBody");
-				BodyIndex devastatorAlly = BodyCatalog.FindBodyIndex("VoidMegaCrabAllyBody");
+			Log.LogTrace("Preparing all void enemies for native fog immunity, should the config be enabled.");
+			BodyIndex infestor = BodyCatalog.FindBodyIndex("VoidInfestorBody");
+			BodyIndex barnacle = BodyCatalog.FindBodyIndex("VoidBarnacleBody");
+			BodyIndex reaver = BodyCatalog.FindBodyIndex("NullifierBody");
+			BodyIndex jailer = BodyCatalog.FindBodyIndex("VoidJailerBody");
+			BodyIndex devastator = BodyCatalog.FindBodyIndex("VoidMegaCrabBody");
+			BodyIndex reaverAlly = BodyCatalog.FindBodyIndex("NullifierAllyBody");
+			BodyIndex jailerAlly = BodyCatalog.FindBodyIndex("VoidJailerAllyBody");
+			BodyIndex devastatorAlly = BodyCatalog.FindBodyIndex("VoidMegaCrabAllyBody");
+			BodyIndex[] collected = new BodyIndex[] { infestor, barnacle, reaver, jailer, devastator, reaverAlly, jailerAlly, devastatorAlly };
 
-				Log.LogTrace($"Indices: Void Infestor={infestor}, Void Barnacle={barnacle}, Void Reaver={reaver} (Friendly={reaverAlly}), Void Jailer={jailer} (Friendly={jailerAlly}), Void Devastator={devastator} (Friendly={devastatorAlly})");
-				if (infestor != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, infestor);
-				if (barnacle != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, barnacle);
-				if (reaver != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, reaver);
-				if (jailer != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, jailer);
-				if (devastator != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, devastator);
-				if (reaverAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, reaverAlly);
-				if (jailerAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, jailerAlly);
-				if (devastatorAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, devastatorAlly);
+			Log.LogTrace($"Indices: Void Infestor={infestor}, Void Barnacle={barnacle}, Void Reaver={reaver} (Friendly={reaverAlly}), Void Jailer={jailer} (Friendly={jailerAlly}), Void Devastator={devastator} (Friendly={devastatorAlly})");
+			if (infestor != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, infestor);
+			if (barnacle != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, barnacle);
+			if (reaver != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, reaver);
+			if (jailer != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, jailer);
+			if (devastator != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, devastator);
+			if (reaverAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, reaverAlly);
+			if (jailerAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, jailerAlly);
+			if (devastatorAlly != BodyIndex.None) VoidBehaviorRegistry.RegisterForVoidImmunities(VoidPlayerCharacterCommon.Instance, devastatorAlly);
+
+			for (int i = 0; i < collected.Length; i++) {
+				VoidBehaviorRegistry._nativeVoidConditionalImmunitySubjects[collected[i]] = true;
 			}
 		}
 
@@ -194,11 +197,20 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 				if (attacker != null) {
 					CharacterBody body = attacker.GetComponent<CharacterBody>();
 					if (body != null) {
-						Log.LogTrace("Detected TakeDamage call with Conditional Void Death!");
+						Log.LogTrace("Detected TakeDamage call with Conditional Void Death! Verifying...");
+
+						// Fix a silly bug.
+						if (damageInfo.attacker == @this.gameObject) {
+							Log.LogTrace("The attacker is the same as the character that was hit. Self-damage is not possible at all. Aborting hook and returning to normal behavior.");
+							originalMethod(@this, damageInfo);
+							return;
+						}
+
 						// New condition 
 						bool canInstakill;
 						CharacterBody.BodyFlags theseFlags = @this.body.bodyFlags;
-						if (theseFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath) || damageInfo.attacker == @this.gameObject) {
+						if (theseFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
+							Log.LogTrace("Character is immune to void death. Instakill is not possible.");
 							canInstakill = false;
 						} else {
 							bool isBoss = @this.body.isBoss;
@@ -206,11 +218,14 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 							TeamComponent attackerTeam = body.GetComponent<TeamComponent>();
 							if (victimTeam && attackerTeam && victimTeam.teamIndex == attackerTeam.teamIndex) {
 								canInstakill = CustomVoidDamageBehaviors.CanCharacterFriendlyFire(body.bodyIndex);
+								Log.LogTrace($"Friendly fire detected. Instakill requires friendly fire, which is currently {(canInstakill ? "ON" : "OFF")}");
 							} else {
 								if (isBoss) {
 									canInstakill = CustomVoidDamageBehaviors.CanCharacterInstakillBosses(body.bodyIndex);
+									Log.LogTrace($"Character is a boss, which {(canInstakill ? "can" : "can NOT")} be instakilled.");
 								} else {
 									canInstakill = CustomVoidDamageBehaviors.CanCharacterInstakillMonsters(body.bodyIndex);
+									Log.LogTrace($"Character is a standard monster, which {(canInstakill ? "can" : "can NOT")} be instakilled.");
 								}
 							}
 						}
@@ -221,7 +236,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 						} else {
 							Log.LogTrace($"Intercepted damage for Conditional Void Death. Instakill has been rejected, and has been removed. Applying fallback damage instead.");
 							damageInfo.damageType &= ~DamageType.VoidDeath;
-							damageInfo.damage = body.baseDamage * CustomVoidDamageBehaviors.GetFallbackDamage(body.bodyIndex);
+							// damageInfo.damage = body.baseDamage * CustomVoidDamageBehaviors.GetFallbackDamage(body.bodyIndex);
 						}
 					}
 				}

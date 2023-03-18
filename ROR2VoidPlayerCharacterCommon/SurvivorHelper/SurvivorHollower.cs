@@ -75,10 +75,15 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		/// <param name="skillLocator"></param>
 		public static void FinalizeBody(SkillLocator skillLocator) {
 			Log.LogTrace("Finalizing body by using ContentAddition to register all skills...");
+			skillLocator.allSkills = skillLocator.gameObject.GetComponents<GenericSkill>();
 			ContentAddition.AddSkillFamily(skillLocator.primary._skillFamily);
 			ContentAddition.AddSkillFamily(skillLocator.secondary._skillFamily);
 			ContentAddition.AddSkillFamily(skillLocator.utility._skillFamily);
 			ContentAddition.AddSkillFamily(skillLocator.special._skillFamily);
+			foreach (GenericSkill def in skillLocator.allSkills) {
+				if (def == skillLocator.primary || def == skillLocator.secondary || def == skillLocator.utility || def == skillLocator.special) continue;
+				ContentAddition.AddSkillFamily(def._skillFamily);
+			}
 		}
 
 
@@ -121,6 +126,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 				case SlotType.Special:
 					target = skillLocator.special;
 					break;
+				case SlotType.Extra:
+					target = bodyContainer.AddComponent<GenericSkill>();
+					target._skillFamily ??= ScriptableObject.CreateInstance<SkillFamily>();
+					target.skillFamily.variants ??= Array.Empty<SkillFamily.Variant>();
+					break;
+				case SlotType.ExtraHidden:
+					target = bodyContainer.AddComponent<GenericSkill>();
+					target._skillFamily ??= ScriptableObject.CreateInstance<SkillFamily>();
+					target.skillFamily.variants ??= Array.Empty<SkillFamily.Variant>();
+					target.hideInCharacterSelect = true;
+					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(slotType), "Invalid slot type!");
 			}
@@ -134,7 +150,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			}
 			SkillFamily.Variant newVariant = default;
 			newVariant.skillDef = definition;
-			newVariant.viewableNode = new ViewablesCatalog.Node(definition.skillName + "_VIEW", false, null);
+			newVariant.viewableNode = (slotType == SlotType.ExtraHidden) ? null : (new ViewablesCatalog.Node(definition.skillName + "_VIEW", false, null));
 			variants[variantIndex] = newVariant;
 			family.variants = variants;
 			Log.LogTrace($"Done. Appended new skill in slot \"{slotType}\": {definition.skillNameToken}");
@@ -167,11 +183,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		/// <summary>
 		/// Translates the stock Void skin and the Newly Hatched Zoea skin into variants for the survivor.
 		/// </summary>
-		/// <param name="bodyPrefab"></param>
+		/// <param name="survivorObject">The survivor's body prefab.</param>
+		/// <param name="dataSrcBodyPrefab">The body to take data from to copy skins.</param>
 		/// <param name="skinNameToken"></param>
-		private static LoadoutAPI.SkinDefInfo CreateDefaultAndZoeaSkin(GameObject bodyPrefab, string skinNameToken) {
-			Renderer[] renderers = bodyPrefab.GetComponentsInChildren<Renderer>();
-			ModelLocator component = bodyPrefab.GetComponent<ModelLocator>();
+		private static LoadoutAPI.SkinDefInfo CreateDefaultAndZoeaSkin(GameObject survivorObject, GameObject dataSrcBodyPrefab, string skinNameToken) {
+			Renderer[] renderers = dataSrcBodyPrefab.GetComponentsInChildren<Renderer>();
+			ModelLocator component = survivorObject.GetComponent<ModelLocator>();
 			GameObject effectiveRoot = component.modelTransform.gameObject;
 
 			Log.LogTrace("Cloning the default materials of the character...");
@@ -193,8 +210,10 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 
 			Material[] mtls = new Material[renderers.Length];
 			for (int i = 0; i < mtls.Length; i++) {
+				Material replacement = new Material(renderers[i].material);
+				mtls[i] = replacement;
 				defaultSkin.RendererInfos[i] = new CharacterModel.RendererInfo {
-					defaultMaterial = new Material(mtls[i]),
+					defaultMaterial = replacement,
 					defaultShadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On,
 					ignoreOverlays = false,
 					renderer = renderers[i]
@@ -223,8 +242,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			}
 
 			Log.LogTrace("Registering skins with LoadoutAPI...");
-			LoadoutAPI.AddSkinToCharacter(bodyPrefab, CreateDefaultAndZoeaSkin(bodyPrefab, LanguageData.VOID_SKIN_DEFAULT));
-			LoadoutAPI.AddSkinToCharacter(bodyPrefab, CreateDefaultAndZoeaSkin(allyOriginalPrefab, LanguageData.VOID_SKIN_ALLY));
+			LoadoutAPI.AddSkinToCharacter(bodyPrefab, CreateDefaultAndZoeaSkin(bodyPrefab, bodyPrefab, LanguageData.VOID_SKIN_DEFAULT));
+			LoadoutAPI.AddSkinToCharacter(bodyPrefab, CreateDefaultAndZoeaSkin(bodyPrefab, allyOriginalPrefab, LanguageData.VOID_SKIN_ALLY));
 		}
 
 		/// <summary>
@@ -250,7 +269,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			/// <summary>
 			/// The special slot.
 			/// </summary>
-			Special
+			Special,
+
+			/// <summary>
+			/// An arbitrary skill bound to an arbitrary "Misc" slot.
+			/// </summary>
+			Extra,
+
+			/// <summary>
+			/// An arbitrary skill that doesn't show up in the "Skills" menu (but <em>does</em> show in the "Loadout" menu).
+			/// </summary>
+			ExtraHidden,
 
 		}
 

@@ -1,7 +1,10 @@
 ﻿using R2API;
+using RoR2;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
+using Xan.ROR2VoidPlayerCharacterCommon.ROOInterop;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 	internal static class LanguageData {

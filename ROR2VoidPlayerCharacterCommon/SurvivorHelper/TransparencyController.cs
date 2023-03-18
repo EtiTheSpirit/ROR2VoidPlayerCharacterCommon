@@ -17,13 +17,13 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		/// Set this to the applicable mod's "Transparency In Combat" setting.
 		/// </summary>
 		[DoNotSerialize]
-		public ConfigEntry<int> _transparencyInCombat;
+		public Func<int> _getTransparencyInCombat;
 
 		/// <summary>
 		/// Set this to the applicable mod's "Transparency Out Of Combat" setting.
 		/// </summary>
 		[DoNotSerialize]
-		public ConfigEntry<int> _transparencyOutOfCombat;
+		public Func<int> _getTransparencyOutOfCombat;
 
 		/// <summary>
 		/// Returns the CharacterBody of the client player running this instance of the game. May be null.
@@ -49,8 +49,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		private void OnDestroy() {
 			try {
 				SceneCamera.onSceneCameraPreRender -= OnSceneCameraPreRender;
-				_transparencyInCombat = null;
-				_transparencyOutOfCombat = null;
+				_getTransparencyInCombat = null;
+				_getTransparencyOutOfCombat = null;
 			} catch { }
 		}
 
@@ -88,12 +88,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			_isMine = ClientPlayerBody == _body;
 			if (!_isMine) return;
 			if (DestroyIfNeeded()) return;
-			if (_transparencyInCombat == null || _transparencyOutOfCombat == null) return;
+			if (_getTransparencyInCombat == null || _getTransparencyOutOfCombat == null) return;
 
 			if (_body.outOfDanger && _body.outOfCombat) {
-				SetTransparency(_transparencyOutOfCombat.Value / 100f);
+				SetTransparency(_getTransparencyOutOfCombat() / 100f);
 			} else {
-				SetTransparency(_transparencyInCombat.Value / 100f);
+				SetTransparency(_getTransparencyInCombat() / 100f);
 			}
 
 		}

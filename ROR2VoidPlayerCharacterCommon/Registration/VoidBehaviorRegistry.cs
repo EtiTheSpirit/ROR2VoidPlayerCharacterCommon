@@ -15,8 +15,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 	internal static class VoidBehaviorRegistry {
 
 		private static Dictionary<BodyIndex, BaseUnityPlugin> _immunityRegistrars = new Dictionary<BodyIndex, BaseUnityPlugin>();
-
-		internal static bool IsImmuneToVoidFog(BodyIndex bodyIndex) => _immunityRegistrars.ContainsKey(bodyIndex);
+		internal static readonly Dictionary<BodyIndex, bool> _nativeVoidConditionalImmunitySubjects = new Dictionary<BodyIndex, bool>(); // For mod internals only!
+		
+		internal static bool IsImmuneToVoidFog(BodyIndex bodyIndex) {
+			if (_immunityRegistrars.ContainsKey(bodyIndex)) {
+				if (_nativeVoidConditionalImmunitySubjects.ContainsKey(bodyIndex)) {
+					return Configuration.EnforceVoidNativeImmunity;
+				}
+				return true;
+			}
+			return false;
+		}
 
 		internal static void RegisterForVoidImmunities(BaseUnityPlugin registrar, BodyIndex bodyIndex) {
 			if (registrar == null) throw new ArgumentNullException(nameof(registrar));
