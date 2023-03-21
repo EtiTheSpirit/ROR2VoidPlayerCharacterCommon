@@ -68,6 +68,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<bool> _allowPlayerBlackholeFriendlyFire;
 
+		//[ReplicatedConfiguration]
+		//internal static ReplicatedConfigEntry<bool> _putVoidPlayersOnVoidTeam;
+
 		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<float> _blackholeBackupDamage;
 
@@ -84,6 +87,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 
 			aCfg.SetCategory("Void Entity Behavior");
 			_enforceNativeImmunity = aCfg.BindReplicated("Native Void Fog Immunity", "If enabled, all void(touched) enemies and allies will be immune to damage from the void fog and atmosphere.\n\nThis resolves a few weird edge cases where void enemies can take damage from the atmosphere, such as in The Simulacrum. Handle this setting with care.", false);
+			// _putVoidPlayersOnVoidTeam = aCfg.BindReplicated("Void Players on Void Team", "This is probably a terrible idea and honestly I added this just because it seemed silly at the time. Players that spawn in as registered Void survivors (not including Void Fiend) will be put onto the Void team. Which means their friends (you) can kill them.", false, AdvancedConfigBuilder.RestartType.NextRespawn);
 
 			aCfg.SetCategory("Global Black Hole Behavior");
 			const string blackHoleDisclaimer = "<style=cIsVoid>This applies strictly only to player characters that have void deaths. This does not affect AI in any way.</style> Also note that these settings can be configured per individual Void characters (these are just the global defaults).\n\n";
