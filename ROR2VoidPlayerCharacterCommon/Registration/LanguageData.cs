@@ -13,7 +13,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 		public const string VOID_SKIN_ALLY = "VOID_COMMON_CHARACTER_SKIN_ALLY";
 
 		public static void Initialize() {
-			LanguageAPI.Add(VOID_SKIN_DEFAULT, "Void Default");
+			LanguageAPI.Add(VOID_SKIN_DEFAULT, "Native");
 			LanguageAPI.Add(VOID_SKIN_ALLY, "Newly Hatched Zoea");
 		}
 

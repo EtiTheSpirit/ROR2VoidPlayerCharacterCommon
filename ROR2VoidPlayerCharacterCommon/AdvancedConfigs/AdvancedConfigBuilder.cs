@@ -388,7 +388,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.ROOInterop {
 		/// <param name="formatString"></param>
 		/// <returns></returns>
 		public ReplicatedPercentageWrapper BindFloatPercentageReplicated(string name, string description, float @default, float min = 0f, float max = 100f, RestartType restartRequired = RestartType.NoRestartRequired, string formatString = "{0}%") {
-			ReplicatedPercentageWrapper wrapper = new ReplicatedPercentageWrapper(this, name, StripTags(description), @default, min, max, restartRequired, formatString);
+			ReplicatedPercentageWrapper wrapper = new ReplicatedPercentageWrapper(this, name, description, @default, min, max, restartRequired, formatString);
 			_configs.Add(new BasicConfigData {
 				type = "Percentage",
 				name = name,
@@ -412,7 +412,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.ROOInterop {
 		/// <param name="formatString"></param>
 		/// <returns></returns>
 		public LocalPercentageWrapper BindFloatPercentageLocal(string name, string description, float @default, float min = 0f, float max = 100f, RestartType restartRequired = RestartType.NoRestartRequired, string formatString = "{0}%") {
-			LocalPercentageWrapper wrapper = new LocalPercentageWrapper(this, name, StripTags(description), @default, min, max, restartRequired, formatString);
+			LocalPercentageWrapper wrapper = new LocalPercentageWrapper(this, name, description, @default, min, max, restartRequired, formatString);
 			_configs.Add(new BasicConfigData {
 				type = "Percentage",
 				name = name,

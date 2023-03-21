@@ -79,6 +79,9 @@
     <Reference Include="RiskOfOptions">
       <HintPath>C:\Users\Eti\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Mein Kraft\BepInEx\plugins\Rune580-Risk_Of_Options\RiskOfOptions.dll</HintPath>
     </Reference>
+    <Reference Include="ROR2HPBarAPI">
+      <HintPath>..\..\ROR2HPBarAPI\ROR2HPBarAPI\bin\Release\netstandard2.0\ROR2HPBarAPI.dll</HintPath>
+    </Reference>
     <Reference Include="SimpleJSON">
       <HintPath>libs\SimpleJSON.dll</HintPath>
       <Private>false</Private>

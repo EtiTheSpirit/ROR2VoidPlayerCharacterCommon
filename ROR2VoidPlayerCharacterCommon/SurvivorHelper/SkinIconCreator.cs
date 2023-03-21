@@ -11,35 +11,35 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 	/// </summary>
 	internal struct IconTexJobImproved : IJobParallelFor {
 		[ReadOnly]
-		public Color32 Top;
+		public Color32 top;
 
 		[ReadOnly]
-		public Color32 Right;
+		public Color32 right;
 
 		[ReadOnly]
-		public Color32 Bottom;
+		public Color32 bottom;
 
 		[ReadOnly]
-		public Color32 Left;
+		public Color32 left;
 
-		private static readonly Color32 LINE_FADE = new Color32(127, 127, 127, 255);
+		private static readonly Color32 _lineFade = new Color32(127, 127, 127, 255);
 
-		public NativeArray<Color32> TexOutput;
+		public NativeArray<Color32> texOutput;
 
 		public void Execute(int index) {
 			int num = index % 128 - 64;
 			int num2 = index / 128 - 64;
 			if (num2 > num && num2 > -num) {
-				TexOutput[index] = Top;
+				texOutput[index] = top;
 			} else if (num2 < num && num2 < -num) {
-				TexOutput[index] = Bottom;
+				texOutput[index] = bottom;
 			} else if (num2 > num && num2 < -num) {
-				TexOutput[index] = Left;
+				texOutput[index] = left;
 			} else if (num2 < num && num2 > -num) {
-				TexOutput[index] = Right;
+				texOutput[index] = right;
 			}
-			if (Math.Abs(Math.Abs(num2) - Math.Abs(num)) <= 8) {
-				TexOutput[index] = Color32.Lerp(TexOutput[index], LINE_FADE, 0.25f);
+			if (Math.Abs(Math.Abs(num2) - Math.Abs(num)) <= 6) {
+				texOutput[index] = Color32.Lerp(texOutput[index], _lineFade, 0.25f);
 			}
 		}
 	}
@@ -60,11 +60,11 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		public static Sprite CreateSkinIcon(Color32 top, Color32 right, Color32 bottom, Color32 left) {
 			Texture2D texture2D = new Texture2D(128, 128, TextureFormat.RGBA32, mipChain: false);
 			IconTexJobImproved jobData = default;
-			jobData.Top = top;
-			jobData.Bottom = bottom;
-			jobData.Right = right;
-			jobData.Left = left;
-			jobData.TexOutput = texture2D.GetRawTextureData<Color32>();
+			jobData.top = top;
+			jobData.bottom = bottom;
+			jobData.right = right;
+			jobData.left = left;
+			jobData.texOutput = texture2D.GetRawTextureData<Color32>();
 			jobData.Schedule(16384, 1).Complete();
 			texture2D.wrapMode = TextureWrapMode.Clamp;
 			texture2D.Apply();

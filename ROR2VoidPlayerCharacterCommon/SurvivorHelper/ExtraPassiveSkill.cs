@@ -1,4 +1,5 @@
-﻿using RoR2;
+﻿#pragma warning disable Publicizer001
+using RoR2;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -75,8 +76,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		private static void AddExtraPassives(in CharacterSelectController.BodyInfo bodyInfo, List<CharacterSelectController.StripDisplayData> dest, bool callIsBeforePassive) {
 			ExtraPassiveSkill[] extraPassives = bodyInfo.bodyPrefab.GetComponents<ExtraPassiveSkill>();
 			for (int index = 0; index < extraPassives.Length; index++) {
-				SkillLocator.PassiveSkill skill = extraPassives[index].additionalPassive;
-				if (!skill.enabled) continue;
+				ExtraPassiveSkill extraPassiveSkill = extraPassives[index];
+				SkillLocator.PassiveSkill skill = extraPassiveSkill.additionalPassive;
+				if (!skill.enabled || !extraPassiveSkill.enabled) continue;
 				if (extraPassives[index].beforeNormalPassive != callIsBeforePassive) continue;
 
 				dest.Add(new CharacterSelectController.StripDisplayData {

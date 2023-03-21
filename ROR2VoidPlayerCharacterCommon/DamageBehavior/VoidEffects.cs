@@ -13,7 +13,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 	/// A registry of VFX and Projectiles that are used.
 	/// </summary>
 	public static class VoidEffects {
-		
+
 		/// <summary>
 		/// A variation of the crit goggles kill effect that does not emit a sound. This is not immediately set and may be null if referenced in a mod's init cycle.
 		/// </summary>
@@ -25,12 +25,14 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 
 		private static void InterceptHealthAssetsResolver(On.RoR2.HealthComponent.AssetReferences.orig_Resolve originalMethod) {
 			originalMethod();
+			On.RoR2.HealthComponent.AssetReferences.Resolve -= InterceptHealthAssetsResolver; // Clean up!
+
 			SilentVoidCritDeathEffect = PrefabAPI.InstantiateClone(HealthComponent.AssetReferences.critGlassesVoidExecuteEffectPrefab, "SilentExaggeratedVoidDeathFX");
 			SilentVoidCritDeathEffect.AddComponent<NetworkIdentity>();
 			EffectComponent fx = SilentVoidCritDeathEffect.GetComponentInChildren<EffectComponent>();
 			fx.soundName = null;
+
 			ContentAddition.AddEffect(SilentVoidCritDeathEffect);
-			On.RoR2.HealthComponent.AssetReferences.Resolve -= InterceptHealthAssetsResolver; // Clean up!
 			Log.LogTrace("Instantiated prefab for silent void crit death effect.");
 		}
 	}

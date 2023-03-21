@@ -7,6 +7,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior;
+using Xan.ROR2VoidPlayerCharacterCommon.ProjectileHelper;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon {
 
@@ -90,6 +91,16 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 			NoInstakillDevastatorImplosion = RegisterVoidImplosion("RoR2/DLC1/VoidMegaCrab/VoidMegaCrabDeathBombProjectile.prefab", "DevastatorImplosionNoVoidDeath", true);
 			Log.LogTrace("No-Instakill Devastator Bomblet...");
 			NoInstakillDevastatorBomblet = RegisterVoidImplosion("RoR2/DLC1/VoidMegaCrab/VoidMegaCrabDeathBombletsProjectile.prefab", "DevastatorBombletNoVoidDeath", true);
+
+			ProjectileImpactExplosion impactExplosion = DevastatorBomblet.GetComponent<ProjectileImpactExplosion>();
+			impactExplosion.destroyOnEnemy = true;
+			impactExplosion.destroyOnWorld = true;
+			DevastatorBomblet.GetComponent<SphereCollider>().radius = 1.25f;
+
+			impactExplosion = NoInstakillDevastatorBomblet.GetComponent<ProjectileImpactExplosion>();
+			impactExplosion.destroyOnEnemy = true;
+			impactExplosion.destroyOnWorld = true;
+			NoInstakillDevastatorBomblet.GetComponent<SphereCollider>().radius = 1.25f;
 		}
 
 		private static GameObject RegisterVoidImplosion(string address, string newName, bool isNeverKill) {
@@ -102,6 +113,11 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 			} else {
 				damageHolder.Add(VoidDamageTypes.ConditionalVoidDeath);
 			}
+			ProjectileExplosion explosionInfo = instance.GetComponent<ProjectileExplosion>();
+			if (explosionInfo) {
+				explosionInfo.blastAttackerFiltering = AttackerFiltering.NeverHitSelf;
+			}
+			ContentAddition.AddProjectile(instance);
 			return instance;
 		}
 

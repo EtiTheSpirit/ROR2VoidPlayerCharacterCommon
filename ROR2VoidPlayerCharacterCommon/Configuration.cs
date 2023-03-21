@@ -52,25 +52,23 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 
 		#region Backing Fields
 
-		[AllowNull]
 		private static ConfigEntry<bool> _traceLogging;
 
-		[AllowNull]
 		private static ConfigEntry<bool> _disableMufflerOnDeath;
 
-		[AllowNull, ReplicatedConfiguration]
+		[ReplicatedConfiguration]
 		private static ReplicatedConfigEntry<bool> _enforceNativeImmunity;
 
-		[AllowNull, ReplicatedConfiguration]
+		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<bool> _allowPlayerBlackholeInstakill;
 
-		[AllowNull, ReplicatedConfiguration]
+		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<bool> _allowPlayerBlackholeInstakillBosses;
 
-		[AllowNull, ReplicatedConfiguration]
+		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<bool> _allowPlayerBlackholeFriendlyFire;
 
-		[AllowNull, ReplicatedConfiguration]
+		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<float> _blackholeBackupDamage;
 
 		#endregion

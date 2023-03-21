@@ -12,6 +12,7 @@ using Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked;
 using Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior;
 using Xan.ROR2VoidPlayerCharacterCommon.Registration;
 using Xan.ROR2VoidPlayerCharacterCommon.ROOInterop;
+using Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon {
 
@@ -81,6 +82,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// <param name="bodyIndex">The <see cref="CharacterBody"/> to register, by its index.</param>
 		public static void RegisterAsVoidEntity(BaseUnityPlugin registrar, BodyIndex bodyIndex) {
 			VoidBehaviorRegistry.RegisterForVoidImmunities(registrar, bodyIndex);
+			ROR2HPBarAPI.API.Registry.RegisterColorProvider(registrar, bodyIndex, VoidStyleHPBarTheme.Instance);
 			// VoidDamageHooks.RegisterForManualVoidDeath(registrar, bodyIndex);
 		}
 

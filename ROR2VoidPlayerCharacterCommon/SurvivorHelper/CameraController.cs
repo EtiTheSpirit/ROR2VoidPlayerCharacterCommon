@@ -1,5 +1,4 @@
-﻿using Rewired.Utils.Libraries.TinyJson;
-using RoR2;
+﻿using RoR2;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -15,20 +14,23 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		/// <summary>
 		/// Sets the camera's offset.
 		/// </summary>
-		[DoNotSerialize]
 		public Func<Vector3> getCameraOffset;
 
 		/// <summary>
 		/// Sets the camera's vertical pivot point offset.
 		/// </summary>
-		[DoNotSerialize]
 		public Func<float> getCameraPivot;
 
 		/// <summary>
 		/// Sets whether or not the client is using a full size character.
 		/// </summary>
-		[DoNotSerialize]
 		public Func<bool> getUseFullSizeCharacter;
+
+		/// <summary>
+		/// Whether or not this <see cref="CameraController"/> was added to a full size character. Used to prevent the camera from changing.
+		/// </summary>
+		private bool _isThisInstanceFullSizeCharacter;
+		private bool _setFullSizeBool;
 
 		private CameraTargetParams _camTarget;
 
@@ -38,10 +40,14 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 
 		private void Update() {
 			if (_camTarget && (getCameraOffset != null) && (getCameraPivot != null) && (getUseFullSizeCharacter != null)) {
+				if (!_setFullSizeBool) {
+					_setFullSizeBool = true;
+					_isThisInstanceFullSizeCharacter = getUseFullSizeCharacter();
+				}
 				if (!_camTarget.cameraParams) _camTarget.cameraParams = ScriptableObject.CreateInstance<CharacterCameraParams>();
 				Vector3 pos = getCameraOffset();
 				float vert = getCameraPivot();
-				if (!getUseFullSizeCharacter()) {
+				if (!_isThisInstanceFullSizeCharacter) {
 					pos *= 0.5f;
 					vert *= 0.5f;
 				}

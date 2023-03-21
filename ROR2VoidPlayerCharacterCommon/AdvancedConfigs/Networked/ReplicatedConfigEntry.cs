@@ -62,6 +62,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		public T ReplicatedValue {
 			get => _replicatedValue;
 			internal set {
+				if (Equals(_replicatedValue, value)) return;
 				_replicatedValue = value;
 				SettingChanged?.Invoke(value, true);
 			}
@@ -74,6 +75,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		public T LocalValue {
 			get => LocalBackingConfig.Value;
 			set {
+				if (Equals(LocalBackingConfig.Value, value)) return;
 				LocalBackingConfig.Value = value;
 				SettingChanged?.Invoke(value, false);
 			}

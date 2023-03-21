@@ -26,7 +26,6 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		public const string PLUGIN_NAME = "VoidPlayerCharacterCommon";
 		public const string PLUGIN_VERSION = "2.0.0";
 
-		[AllowNull]
 		internal static VoidPlayerCharacterCommon Instance { get; private set; }
 
 		internal void Awake() {
@@ -40,6 +39,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 			VoidImplosionObjects.Initialize();
 			LanguageData.Initialize();
 			ExtraPassiveHandler.Initialize();
+			SurvivorHollower.Initialize();
 
 			NetworkingAPI.RegisterMessageType<ConfigurationReplicator.ConfigurationReplicationMessage>();
 			NetworkingAPI.RegisterMessageType<ConfigurationReplicator.ConfigurationRequestMessage>();

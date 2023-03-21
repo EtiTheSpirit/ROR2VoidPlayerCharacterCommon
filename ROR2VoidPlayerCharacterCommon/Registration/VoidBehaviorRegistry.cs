@@ -53,8 +53,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.Registration {
 			}
 			if (deathBehavior.deathState.stateType.GetInterface(nameof(IHasDelayedGameOver)) != null) {
 				Log.LogInfo($"CharacterBody [{body.GetDisplayName()}] ({body.name} // {body.baseNameToken}) has a death state that delays the Game Over screen, verifying ...");
-				if (!body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
-					Log.LogError($"... it is not immune to Void Death! This WILL cause problems.");
+				if (body.bodyFlags.HasFlag(CharacterBody.BodyFlags.ImmuneToVoidDeath)) {
+					Log.LogError($"... it is immune to Void Death! This WILL cause problems. Void Characters automatically reject Void Death caused by themselves.");
 					ok = false;
 				}
 			}

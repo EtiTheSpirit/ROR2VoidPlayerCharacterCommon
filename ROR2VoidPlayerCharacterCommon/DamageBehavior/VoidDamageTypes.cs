@@ -46,6 +46,11 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 		/// </summary>
 		public static ModdedDamageType BypassFogResistance { get; private set; }
 
+		/// <summary>
+		/// Designed explicitly for the Exaggerated Void Deaths mod, this tells the system to make the void kill sound anyway instead of doing what it normally does and silencing it.
+		/// </summary>
+		public static ModdedDamageType ExaggeratedVoidDeathRequiresNoise { get; private set; }
+
 		internal static void Initialize() {
 			Log.LogInfo("Initializing Void Damage Types...");
 			Log.LogTrace($"Visual Void Death ({nameof(VoidDamageTypes)}::{nameof(DisplayVoidDeathOnKill)})...");
@@ -58,6 +63,8 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.DamageBehavior {
 			NeverVoidDeath = ReserveDamageType();
 			Log.LogTrace($"Bypass Fog Resistance ({nameof(VoidDamageTypes)}::{nameof(BypassFogResistance)})...");
 			BypassFogResistance = ReserveDamageType();
+			Log.LogTrace($"Bypass Fog Resistance ({nameof(VoidDamageTypes)}::{nameof(ExaggeratedVoidDeathRequiresNoise)})...");
+			ExaggeratedVoidDeathRequiresNoise = ReserveDamageType();
 		}
 
 	}
