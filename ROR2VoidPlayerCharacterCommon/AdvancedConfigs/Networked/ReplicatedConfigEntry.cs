@@ -77,7 +77,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 			set {
 				if (Equals(LocalBackingConfig.Value, value)) return;
 				LocalBackingConfig.Value = value;
-				SettingChanged?.Invoke(value, false);
+				SettingChanged?.Invoke(value, Run.instance == null || NetworkServer.active);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 
 		/// <summary>
 		/// The current effective value that the game should be using. 
-		/// This will be <see cref="LocalValue"/> if a run is not live or if this machine is the host, and <see cref="ReplicatedValue"/> if this player is in multiplayer and is not the host.
+		/// This will be <see cref="LocalValue"/> if a run is not live or if this machine is the host (including in singleplayer), and <see cref="ReplicatedValue"/> if this player is in multiplayer and is not the host.
 		/// </summary>
 		public T Value => (Run.instance == null || NetworkServer.active) ? LocalValue : ReplicatedValue;
 
@@ -135,15 +135,15 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		}
 
 		/// <summary>
-		/// This event fires when both the local and remote value changes.
+		/// This event fires when both the local and remote value changes. The delegate offers two parameters. See <see cref="ChangeOccurredDelegate"/> for more information.
 		/// </summary>
 		public event ChangeOccurredDelegate SettingChanged;
 
 		/// <summary>
 		/// This delegate is used for <see cref="SettingChanged"/>.
 		/// </summary>
-		/// <param name="newValue">The new value that was set.</param>
-		/// <param name="fromHost">If true, this value came from the host as a remote change. If false, the local option changed instead.</param>
+		/// <param name="newValue">The new value that this was set to.</param>
+		/// <param name="fromHost">If this is true, three possible scenarios have occurred. #1: This was received over the network from the host. #2: This was a local change, but the local user is the host of the current ongoing run. #3: This was a local change made outside of a run. This value is good for determining if a change to a system should actually be performed.</param>
 		public delegate void ChangeOccurredDelegate(T newValue, bool fromHost);
 	}
 }

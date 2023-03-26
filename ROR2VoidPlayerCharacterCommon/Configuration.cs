@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
+using Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs;
 using Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked;
 using Xan.ROR2VoidPlayerCharacterCommon.ROOInterop;
+using static Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper.VoidTeamSurvivorController;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon {
 
@@ -24,6 +26,21 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		/// for fog immunity regardless of which team they are on. This also includes friendly void units.
 		/// </summary>
 		public static bool EnforceVoidNativeImmunity => _enforceNativeImmunity.Value;
+
+		/// <summary>
+		/// Puts players using the Void survivors onto the Void team.
+		/// </summary>
+		public static bool VoidTeamPlayers => _putVoidPlayersOnVoidTeam.Value;
+
+		/// <summary>
+		/// The type of skin that friendly Void enemies spawned via Newly Hatched Zoea will use.
+		/// </summary>
+		public static ZoeaSkinBehavior ZoeaSkinType => _useNativeZoeaSkinOnVoid.Value;
+
+		/// <summary>
+		/// The damage factor in PvP specifically in the direction of Player => Void Player (and not the other way around).
+		/// </summary>
+		public static float PvPToVoidTeamDamageMult => _pvpVoidDamage.Value;
 
 		/// <summary>
 		/// If true, the low pass filter on death will be turned off iff the player had a void death animation.
@@ -68,11 +85,17 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<bool> _allowPlayerBlackholeFriendlyFire;
 
-		//[ReplicatedConfiguration]
-		//internal static ReplicatedConfigEntry<bool> _putVoidPlayersOnVoidTeam;
+		[ReplicatedConfiguration]
+		internal static ReplicatedConfigEntry<bool> _putVoidPlayersOnVoidTeam;
+
+		[ReplicatedConfiguration]
+		internal static ReplicatedConfigEntry<ZoeaSkinBehavior> _useNativeZoeaSkinOnVoid;
 
 		[ReplicatedConfiguration]
 		internal static ReplicatedConfigEntry<float> _blackholeBackupDamage;
+
+		[ReplicatedConfiguration]
+		internal static ReplicatedPercentageWrapper _pvpVoidDamage;
 
 		#endregion
 
@@ -87,7 +110,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 
 			aCfg.SetCategory("Void Entity Behavior");
 			_enforceNativeImmunity = aCfg.BindReplicated("Native Void Fog Immunity", "If enabled, all void(touched) enemies and allies will be immune to damage from the void fog and atmosphere.\n\nThis resolves a few weird edge cases where void enemies can take damage from the atmosphere, such as in The Simulacrum. Handle this setting with care.", false);
-			// _putVoidPlayersOnVoidTeam = aCfg.BindReplicated("Void Players on Void Team", "This is probably a terrible idea and honestly I added this just because it seemed silly at the time. Players that spawn in as registered Void survivors (not including Void Fiend) will be put onto the Void team. Which means their friends (you) can kill them.", false, AdvancedConfigBuilder.RestartType.NextRespawn);
+			_putVoidPlayersOnVoidTeam = aCfg.BindReplicated("Void Players on Void Team", "<style=cDeath>This is experimental, and was mostly added for the sake of playing around. This might break things. Handle with care.</style>\n\nThis is a terrible idea and honestly I added this just because it seemed like an idea so silly that I just kind of had to. Players that spawn in as registered Void survivors (not including Void Fiend) will be put onto the Void team. Which means their friends (you) can kill them. And they can kill you. Pretty sure it also bricks pickups though.", false, AdvancedConfigBuilder.RestartType.NextRespawn);
+			_pvpVoidDamage = aCfg.BindFloatPercentageReplicated("Void Player PvP Damage", "<style=cDeath>This is experimental, and was mostly added for the sake of playing around. This might break things. Handle with care.</style>\n\nDamage dealt between Players and Void Players is reduced to this percentage of its original amount.", 10f);
+			_useNativeZoeaSkinOnVoid = aCfg.BindReplicated("Native Zoea", "If a survivor has the Newly Hatched Zoea, the spawned Void allies can be set up to use their native skins instead of the custom ally appearance. This effect is purely cosmetic. It may be a good time to remind you that the reason the alt skins were added was because it was hard to tell friendlies from enemies.", ZoeaSkinBehavior.AlwaysAllySkin, AdvancedConfigBuilder.RestartType.NextRespawn);
 
 			aCfg.SetCategory("Global Black Hole Behavior");
 			const string blackHoleDisclaimer = "<style=cIsVoid>This applies strictly only to player characters that have void deaths. This does not affect AI in any way.</style> Also note that these settings can be configured per individual Void characters (these are just the global defaults).\n\n";

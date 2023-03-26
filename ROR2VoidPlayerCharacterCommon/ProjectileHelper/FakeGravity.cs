@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Xan.ROR2VoidPlayerCharacterCommon.ProjectileHelper {
 
 	/// <summary>
-	/// Attach to a rigidbody to give it fake gravity.
+	/// Attach to a rigidbody to give it fake gravity. The reason this exists is so that the gravity can be configured per instance.
 	/// </summary>
 	[RequireComponent(typeof(Rigidbody))]
 	public class FakeGravity : MonoBehaviour {

@@ -24,7 +24,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 		public const string PLUGIN_GUID = PLUGIN_AUTHOR + "." + PLUGIN_NAME;
 		public const string PLUGIN_AUTHOR = "Xan";
 		public const string PLUGIN_NAME = "VoidPlayerCharacterCommon";
-		public const string PLUGIN_VERSION = "2.0.0";
+		public const string PLUGIN_VERSION = "2.0.1";
 
 		internal static VoidPlayerCharacterCommon Instance { get; private set; }
 
@@ -40,6 +40,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 			LanguageData.Initialize();
 			ExtraPassiveHandler.Initialize();
 			SurvivorHollower.Initialize();
+			VoidTeamSurvivorController.Initialize();
 
 			NetworkingAPI.RegisterMessageType<ConfigurationReplicator.ConfigurationReplicationMessage>();
 			NetworkingAPI.RegisterMessageType<ConfigurationReplicator.ConfigurationRequestMessage>();

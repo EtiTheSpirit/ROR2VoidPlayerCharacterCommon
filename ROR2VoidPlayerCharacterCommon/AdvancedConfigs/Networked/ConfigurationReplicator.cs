@@ -19,9 +19,20 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 	/// This class is responsible for replicating configuration data.
 	/// </summary>
 	public class ConfigurationReplicator {
-
+		
+		/// <summary>
+		/// A lookup where keys are mod GUIDs, and values are instances of another lookup where their key is the name of a config entry, and their value is that actual config entry.
+		/// </summary>
 		internal static readonly Dictionary<string, Dictionary<string, ReplicatedConfigEntryBase>> _entriesByModAndKey = new Dictionary<string, Dictionary<string, ReplicatedConfigEntryBase>>();
+
+		/// <summary>
+		/// This is much like <see cref="_entriesByModAndKey"/>, but the secondary lookup (the lookups bound to a mod id) are reversed such that the key is the config instance, and the value is its name.
+		/// </summary>
 		internal static readonly Dictionary<string, Dictionary<ReplicatedConfigEntryBase, string>> _keysByModAndEntry = new Dictionary<string, Dictionary<ReplicatedConfigEntryBase, string>>();
+
+		/// <summary>
+		/// A lookup where keys are mod GUIDs, and values are a lookup from an underlying (local) <see cref="ConfigEntryBase"/> instances to the <see cref="ReplicatedConfigEntryBase"/> that encapsulates it.
+		/// </summary>
 		internal static readonly Dictionary<string, Dictionary<ConfigEntryBase, ReplicatedConfigEntryBase>> _localToReplicated = new Dictionary<string, Dictionary<ConfigEntryBase, ReplicatedConfigEntryBase>>();
 
 		private static readonly Type[] _primitives = new Type[] {
@@ -157,13 +168,15 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		public bool TrySendChanges(SettingChangedEventArgs e) {
 			if (!NetworkServer.active) return false;
 			if (e != null) {
-				if (_localToReplicated.TryGetValue(_modId, out Dictionary<ConfigEntryBase, ReplicatedConfigEntryBase> lookup)) {
+				if (_localToReplicated.TryGetValue(_modId, out Dictionary<ConfigEntryBase, ReplicatedConfigEntryBase> bepSettingToReplicated)) {
 					ConfigEntryBase toFind = e.ChangedSetting;
-					if (toFind != null && lookup.TryGetValue(toFind, out ReplicatedConfigEntryBase replicatedCfg)) {
+					if (toFind != null && bepSettingToReplicated.TryGetValue(toFind, out ReplicatedConfigEntryBase replicatedCfg)) {
 						Log.LogTrace("Sending single config.");
 						string key = _keysByModAndEntry[_modId][replicatedCfg];
 						new ConfigurationReplicationMessage(_modId, key, replicatedCfg).Send(R2API.Networking.NetworkDestination.Clients);
 						return true;
+					} else if (toFind != null) {
+						Log.LogWarning($"Failed to find a replicated configuration entry for option \"{toFind.Definition.Key}\". To avoid a desynchronization, all config data will be sent over at once.");
 					}
 				} else {
 					return false; // If it's not in the list, it's not a replicated change. Do not try anything.

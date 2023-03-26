@@ -519,7 +519,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.ROOInterop {
 			if (type == RestartType.NoRestartRequired) {
 				return isForMarkdown ? "Immediately" : "\n\n<style=cIsHealing>This setting applies immediately.</style>";
 			} else if (type == RestartType.NextRespawn) {
-				return isForMarkdown ? "On the next Run, Stage, or Respawn (if available)" : "\n\n<style=cIsDamage>This setting applies the next time the affected character (re)spawns.</style>";
+				return isForMarkdown ? "On the next Run, Stage, or Respawn (if available)" : "\n\n<style=cIsDamage>This setting applies the next time the affected character(s) (re)spawns.</style>";
 			} else {
 				return isForMarkdown ? "After restarting the game" : "\n\n<style=cDeath>This setting requires a restart to apply.</style>";
 			}

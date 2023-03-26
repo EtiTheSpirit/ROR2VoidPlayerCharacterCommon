@@ -39,7 +39,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.EntityStates {
 				if (Master is null) {
 					errorType = $"was never set. The mod implementing this type ({GetType().FullName}) may have forgotten to call base.{nameof(OnEnter)}() in their override to {nameof(OnEnter)}().";
 				} else {
-					errorType = $"was destroyed by Unity. This should not sensibly happen. This cannot be avoided by the implementing class.";
+					errorType = $"was destroyed by Unity. This should not sensibly happen and represents a potential other serious bug, or another mod doing something that it probably shouldn't be doing. This cannot be avoided by the implementing class.";
 				}
 				Log.LogError($"{nameof(VoidDeathStateBase)} attempted to perform final cleanup (permitting the game over screen), but this operation is currently not possible as the {nameof(CharacterMaster)} {errorType}");
 				Log.LogError("If your game is stuck without a game over screen and you were playing as a Void enemy, this is probably why it happened.");

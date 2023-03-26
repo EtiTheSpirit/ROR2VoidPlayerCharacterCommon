@@ -22,6 +22,46 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 	public static class XanVoidAPI {
 
 		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Infestor.
+		/// </summary>
+		public static BodyIndex Infestor => BodyCatalog.FindBodyIndex("VoidInfestorBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Barnacle.
+		/// </summary>
+		public static BodyIndex Barnacle => BodyCatalog.FindBodyIndex("VoidBarnacleBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Reaver.
+		/// </summary>
+		public static BodyIndex Reaver => BodyCatalog.FindBodyIndex("NullifierBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Jailer.
+		/// </summary>
+		public static BodyIndex Jailer => BodyCatalog.FindBodyIndex("VoidJailerBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Devastator.
+		/// </summary>
+		public static BodyIndex Devastator => BodyCatalog.FindBodyIndex("VoidMegaCrabBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Reaver (Friendly).
+		/// </summary>
+		public static BodyIndex ReaverAlly => BodyCatalog.FindBodyIndex("NullifierAllyBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Jailer (Friendly).
+		/// </summary>
+		public static BodyIndex JailerAlly => BodyCatalog.FindBodyIndex("VoidJailerAllyBody");
+
+		/// <summary>
+		/// <strong>Only valid after the <see cref="BodyCatalog"/> is available!</strong> The index of the Void Devastator (Friendly).
+		/// </summary>
+		public static BodyIndex DevastatorAlly => BodyCatalog.FindBodyIndex("VoidMegaCrabAllyBody");
+
+		/// <summary>
 		/// Returns whether or not the provided <see cref="BodyIndex"/> has been registered as one that is immune to void fog.
 		/// </summary>
 		/// <param name="bodyIndex"></param>
@@ -85,6 +125,13 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 			ROR2HPBarAPI.API.Registry.RegisterColorProvider(registrar, bodyIndex, VoidStyleHPBarTheme.Instance);
 			// VoidDamageHooks.RegisterForManualVoidDeath(registrar, bodyIndex);
 		}
+
+		/// <summary>
+		/// Is the given body index a registered void survivor.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		public static bool IsVoidSurvivor(BodyIndex index) => VoidBehaviorRegistry._immunityRegistrars.ContainsKey(index);
 
 		/// <summary>
 		/// Call this <strong>AFTER</strong> registering your survivor. The input body should be its prefab. This will output information about the character into the console, making sure everything is set up properly.
