@@ -109,7 +109,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		/// <param name="modId">The ID of the mod that this is being created for.</param>
 		/// <param name="configurationType"></param>
 		public static ConfigurationReplicator CreateReplicator(string modId, Type configurationType) {
-			
+
+			if (modId == null) throw new ArgumentNullException(nameof(modId));
+			if (string.IsNullOrEmpty(modId.Trim())) throw new ArgumentException("The mod ID must not be empty or whitespace.", nameof(modId));
 			if (configurationType == null) throw new ArgumentNullException(nameof(configurationType));
 			if (!configurationType.IsClass) throw new ArgumentException($"The provided type is not a class. Provided type: {configurationType.FullName}", nameof(configurationType));
 			if (!configurationType.IsSealed) throw new ArgumentException($"The provided type is not sealed or static. Provided type: {configurationType.FullName}", nameof(configurationType));

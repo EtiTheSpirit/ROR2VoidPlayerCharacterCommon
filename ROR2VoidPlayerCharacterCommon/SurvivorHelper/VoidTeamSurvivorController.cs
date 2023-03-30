@@ -32,6 +32,35 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			_replacementLookup["cscNullifierAlly"] = _nullifierNative;
 			_replacementLookup["cscVoidJailerAlly"] = _jailerNative;
 			_replacementLookup["cscVoidMegaCrabAlly"] = _megaCrabNative;
+
+			On.RoR2.CharacterBody.RecalculateStats += OnRecalculatingStats;
+		}
+
+		private static void OnRecalculatingStats(On.RoR2.CharacterBody.orig_RecalculateStats originalMethod, CharacterBody @this) {
+			if (@this.isPlayerControlled && @this.teamComponent && @this.teamComponent.teamIndex == TeamIndex.Void) {
+				TeamIndex oldIndex = @this.teamComponent.teamIndex;
+
+				uint playerLevel = TeamManager.instance.GetTeamLevel(TeamIndex.Player);
+				uint voidLevel = TeamManager.instance.GetTeamLevel(oldIndex);
+				bool politelyUsePlayerLevel = playerLevel > voidLevel;
+				if (politelyUsePlayerLevel) {
+					// Politely switch to using the level of the players team...
+					try {
+						@this.teamComponent._teamIndex = TeamIndex.Player;
+						originalMethod(@this); // This computes stats as if the player were on the players team, not the void team.
+					} finally {
+						if (@this && @this.teamComponent) {
+							@this.teamComponent._teamIndex = oldIndex; // And then switch the team back.
+						}
+					}
+				} else {
+					// If our team is doing better (somehow) then keep it.
+					originalMethod(@this);
+				}
+				return;
+			}
+
+			originalMethod(@this);
 		}
 
 		#region Zoea Skin
@@ -78,6 +107,13 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			if (body.isPlayerControlled && Configuration.VoidTeamPlayers && XanVoidAPI.IsVoidSurvivor(body.bodyIndex)) {
 				Log.LogTrace("Player is a void survivor. Changing team to Void.");
 				body.teamComponent.teamIndex = TeamIndex.Void;
+				if (body.inventory.GetItemCount(RoR2Content.Items.TeleportWhenOob) == 0) {
+					if (NetworkServer.active) {
+						body.inventory.GiveItem(RoR2Content.Items.TeleportWhenOob);
+						Log.LogTrace("Giving the void player the TeleportWhenOob item so they don't die when they fall out of the map.");
+					}
+				}
+				
 			} else {
 				Log.LogTrace($"Body ({body.baseNameToken}) is not allowed to go to Void team (isPlayerControlled={body.isPlayerControlled}, VoidTeamPlayers={Configuration.VoidTeamPlayers}, isVoidSurvivor={XanVoidAPI.IsVoidSurvivor(body.bodyIndex)})");
 			}

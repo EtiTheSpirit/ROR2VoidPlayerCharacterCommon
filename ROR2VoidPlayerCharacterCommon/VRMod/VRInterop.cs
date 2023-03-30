@@ -15,12 +15,12 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.VRMod {
 	public static class VRInterop {
 
 		/// <summary>
-		/// True if the VR mod is available and installed. VR API members <strong>must not</strong> be used if this is <see langword="false"/>.
+		/// True if the VR mod is available and installed. VR API members <strong>must not</strong> be used if this is <see langword="false"/>, but members of this class <strong>can</strong> safely be used.
 		/// </summary>
 		public static bool VRAvailable => VR.enabled && MotionControls.enabled;
 
 		/// <summary>
-		/// Returns whether or not to perform additional aim compensation for VR players. This may not be implemented.
+		/// Returns whether or not to perform additional aim compensation for VR players. This is intended for remote implementors, hence the acceptance of a <see cref="ConfigEntry{T}"/>.
 		/// </summary>
 		/// <param name="cfg"></param>
 		/// <returns></returns>

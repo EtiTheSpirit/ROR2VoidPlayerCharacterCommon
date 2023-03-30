@@ -21,7 +21,6 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 
 
 		/// <summary>
-		/// Designed by LuaFubuki, modified by Xan.<br/>
 		/// Creates a new container for a <see cref="CharacterBody"/> and sets up its default, blank skills.
 		/// </summary>
 		/// <param name="bodyReplacementName">The name of the body prefab.</param>
@@ -71,7 +70,6 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		}
 
 		/// <summary>
-		/// Added by Xan.
 		/// Intended to be called after the Body has all of its stuff attached, this prevents an error in the console that would
 		/// result in the rejection of these skill families being added to game data.
 		/// </summary>

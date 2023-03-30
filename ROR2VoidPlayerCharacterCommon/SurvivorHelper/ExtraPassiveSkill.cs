@@ -44,11 +44,13 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 
 		private static void InjectBuildSkillStripDisplayData(ILContext il) {
 			ILCursor cursor = new ILCursor(il);
+
+			// Right at the start of the method, emit the delegate to execute beforehand. This adds extra passives to the skill window before anything else ever can.
 			cursor.Emit(OpCodes.Ldarg_2);
 			cursor.Emit(OpCodes.Ldarg_3);
 			cursor.EmitDelegate(AddExtraPassivesPre);
 
-
+			// Now find the code where the skills are added to the list. Some may want to be added after the default survivor passive is added, but before the primary/secondary/utility/special are.
 			cursor.GotoNext(
 				MoveType.After,
 				instruction => instruction.MatchStfld(typeof(CharacterSelectController.StripDisplayData).GetField(nameof(CharacterSelectController.StripDisplayData.keywordString))),
@@ -69,6 +71,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			}
 			AddExtraPassives(bodyInfo, dest, true);
 		}
+
 		private static void AddExtraPassivesPost(in CharacterSelectController.BodyInfo bodyInfo, List<CharacterSelectController.StripDisplayData> dest) {
 			AddExtraPassives(bodyInfo, dest, false);
 		}

@@ -54,7 +54,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 	/// This is much like a <see cref="ConfigEntry{T}"/> but it has a second value for the one received over the network. <strong>This may not necessarily be networked, depending on the presence of a <see cref="ReplicatedConfigurationAttribute"/></strong>
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class ReplicatedConfigEntry<T> : ReplicatedConfigEntryBase {
+	public class ReplicatedConfigEntry<T> : ReplicatedConfigEntryBase, IDisposable {
 
 		/// <summary>
 		/// The value as mandated by the network master. This may not be the proper value. Use <see cref="Value"/> to get the proper value.
@@ -76,7 +76,9 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 			get => LocalBackingConfig.Value;
 			set {
 				if (Equals(LocalBackingConfig.Value, value)) return;
+				_isChangingFromSetter = true;
 				LocalBackingConfig.Value = value;
+				_isChangingFromSetter = false;
 				SettingChanged?.Invoke(value, Run.instance == null || NetworkServer.active);
 			}
 		}
@@ -124,6 +126,16 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		public ReplicatedConfigEntry(ConfigEntry<T> backingConfig) {
 			LocalBackingConfig = backingConfig;
 			Type = typeof(T);
+			backingConfig.SettingChanged += OnBackingCfgChanged;
+		}
+
+		private bool _isChangingFromSetter = false;
+		private void OnBackingCfgChanged(object sender, EventArgs e) {
+			if (_isChangingFromSetter) return;
+			SettingChangedEventArgs evt = (SettingChangedEventArgs)e;
+			if (evt.ChangedSetting == LocalBackingConfig) {
+				SettingChanged?.Invoke(Value, Run.instance == null || NetworkServer.active);
+			}
 		}
 
 		/// <summary>
@@ -145,5 +157,16 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.AdvancedConfigs.Networked {
 		/// <param name="newValue">The new value that this was set to.</param>
 		/// <param name="fromHost">If this is true, three possible scenarios have occurred. #1: This was received over the network from the host. #2: This was a local change, but the local user is the host of the current ongoing run. #3: This was a local change made outside of a run. This value is good for determining if a change to a system should actually be performed.</param>
 		public delegate void ChangeOccurredDelegate(T newValue, bool fromHost);
+
+		/// <summary>
+		/// Disconnects a handler for when <see cref="LocalBackingConfig"/> changes.
+		/// </summary>
+		public void Dispose() {
+			try {
+				LocalBackingConfig.SettingChanged -= OnBackingCfgChanged;
+			} catch (Exception exc) {
+				Log.LogError($"Failed to disconnect SettingChanged: {exc}");
+			}
+		}
 	}
 }
