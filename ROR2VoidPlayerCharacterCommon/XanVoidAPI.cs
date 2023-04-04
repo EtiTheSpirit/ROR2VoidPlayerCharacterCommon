@@ -204,7 +204,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon {
 				}
 				if (players) {
 					if (listSize == 0) {
-						result.Append(" players");
+						result.Append(" <style=cIsDamage>players</style>");
 					} else if (listSize == 1) {
 						result.Append(" and <style=cIsDamage>players</style>");
 					} else {

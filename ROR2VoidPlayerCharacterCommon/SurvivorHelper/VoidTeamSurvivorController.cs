@@ -2,11 +2,14 @@
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
+using RoR2.CharacterAI;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
+using static RoR2.SpawnCard;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
@@ -18,12 +21,19 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		private static Dictionary<string, CharacterSpawnCard> _replacementLookup = new Dictionary<string, CharacterSpawnCard>();
 
 		internal static void Initialize() {
+			Log.LogTrace("Hook: Allowing Void Team players to pick up items...");
 			On.RoR2.GenericPickupController.AttemptGrant += OnAttemptGrantItem;
+			Log.LogTrace("Hook: Instructing all holdout zones (i.e. teleporters) to count Void players as living players...");
 			On.RoR2.HoldoutZoneController.CountLivingPlayers += OnCountingLivingPlayers;
 			On.RoR2.HoldoutZoneController.CountPlayersInRadius += OnCountingPlayersInRadius;
+			Log.LogTrace("Hook: Apply multiplier to damage between Player vs. Void Player...");
 			On.RoR2.HealthComponent.TakeDamage += OnTakeDamage;
+			Log.LogTrace("Hook: Give Void Player special item TeleportWhenOob (so they do not die when falling out of the map)...");
 			On.RoR2.CharacterMaster.OnBodyStart += OnCharacterSpawned;
-			IL.RoR2.VoidMegaCrabItemBehavior.FixedUpdate += InjectSpawnCardAcquisition;
+			Log.LogTrace("Injection: Allowing Newly Hatched Zoea Void enemies to spawn using the native skin where desired via configs...");
+			IL.RoR2.VoidMegaCrabItemBehavior.FixedUpdate += InjectSpawnCardAcquisitionForZoea;
+			Log.LogTrace("Injection: Patch in legacy code to put Aurelionite on the team that has the most Halcyon Seeds in total in its members' inventories...");
+			IL.RoR2.GoldTitanManager.TryStartChannelingTitansServer += InjectSpawningFriendlyAurelionite;;
 
 			_nullifierNative = Addressables.LoadAssetAsync<CharacterSpawnCard>("RoR2/Base/Nullifier/cscNullifier.asset").WaitForCompletion();
 			_jailerNative = Addressables.LoadAssetAsync<CharacterSpawnCard>("RoR2/DLC1/VoidJailer/cscVoidJailer.asset").WaitForCompletion();
@@ -34,6 +44,63 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			_replacementLookup["cscVoidMegaCrabAlly"] = _megaCrabNative;
 
 			On.RoR2.CharacterBody.RecalculateStats += OnRecalculatingStats;
+		}
+
+		private static void InjectSpawningFriendlyAurelionite(ILContext il) {
+			ILCursor cursor = new ILCursor(il);
+			cursor.GotoNext(
+				MoveType.Before,
+				instruction => instruction.MatchLdloc(5),
+				instruction => instruction.MatchLdcI4(1), // This is what I want to replace.
+				instruction => instruction.MatchNewobj<TeamIndex?>(),
+				Instruction => Instruction.MatchStfld<DirectorSpawnRequest>(nameof(DirectorSpawnRequest.teamIndexOverride))
+			);
+			cursor.Index++; // This is acceptable here because if the GotoNext call succeeded, then it is a known, constant fact that those four instructions exist precisely as expected.
+							// Index++ thus moves it to the ldc.i4.1 line.
+			cursor.Remove();
+			cursor.Emit(OpCodes.Ldloc, 2); // Load the teamIndex override that was computed.
+
+			// This is fairly unique here so I will do this.
+			cursor.GotoNext(
+				MoveType.Before,
+				instruction => instruction.MatchPop()
+			);
+			cursor.Remove(); // Remove the pop, then
+			cursor.Emit(OpCodes.Ldloc, 2);
+			cursor.EmitDelegate(EnforceTeamOfAurelionite);
+		}
+
+		private static void EnforceTeamOfAurelionite(GameObject spawnedObject, TeamIndex spawnedOnTeam) {
+			Log.LogTrace($"Spawned Aurelionite: {spawnedObject}");
+			CharacterMaster characterMaster = spawnedObject != null ? spawnedObject.GetComponent<CharacterMaster>() : null;
+			if (characterMaster) {
+				Log.LogTrace("Setting team of master...");
+				characterMaster.teamIndex = spawnedOnTeam;
+				CharacterBody body = characterMaster.GetBody();
+				if (body) {
+					if (body.teamComponent) {
+						Log.LogTrace("Setting team of body...");
+						body.teamComponent.teamIndex = spawnedOnTeam;
+					} else {
+						Log.LogTrace("No team component on Aurelionite???");
+					}
+
+					// To morning Xan: Aurelionite doesn't have an inventory. Adding an inventory then adding the elite item does not work.
+					// All that matters is the visual effect. Check: Does the game look for the buff, or for the equipment?
+					// Where does it actually make the change? Pickup/Drop events?
+					// Good night.
+
+					/*
+					if (!body.inventory) {
+						body.inventory = body.gameObject.AddComponent<Inventory>();
+						Log.LogTrace("Had to add an inventory to Aurelionite.");
+					}
+					body.inventory.SetEquipmentIndex(DLC1Content.Elites.Void.eliteEquipmentDef.equipmentIndex);
+					*/
+				} else {
+					Log.LogTrace("No body?");
+				}
+			}
 		}
 
 		private static void OnRecalculatingStats(On.RoR2.CharacterBody.orig_RecalculateStats originalMethod, CharacterBody @this) {
@@ -64,7 +131,7 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 		}
 
 		#region Zoea Skin
-		private static void InjectSpawnCardAcquisition(ILContext il) {
+		private static void InjectSpawnCardAcquisitionForZoea(ILContext il) {
 			ILCursor cursor = new ILCursor(il);
 			cursor.GotoNext(MoveType.Before, instruction => instruction.MatchLdfld(typeof(VoidMegaCrabItemBehavior).GetField("spawnSelection", BindingFlags.NonPublic | BindingFlags.Instance)));
 			cursor.Remove();
@@ -72,10 +139,10 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			cursor.GotoNext(MoveType.Before, instruction => instruction.MatchCallvirt(typeof(WeightedSelection<CharacterSpawnCard>).GetMethod("Evaluate")));
 			cursor.Remove();
 			cursor.Emit(OpCodes.Ldarg_0);
-			cursor.EmitDelegate(GetSpawnCard);
+			cursor.EmitDelegate(InjectSpawnCardAcquisitionForZoea_GetSpawnCard);
 		}
 
-		private static CharacterSpawnCard GetSpawnCard(float rng, VoidMegaCrabItemBehavior @this) {
+		private static CharacterSpawnCard InjectSpawnCardAcquisitionForZoea_GetSpawnCard(float rng, VoidMegaCrabItemBehavior @this) {
 			CharacterSpawnCard card = @this.spawnSelection.Evaluate(rng);
 			BodyIndex owner = @this.body.bodyIndex;
 			if (UseNativeSkin(owner)) {
@@ -107,13 +174,37 @@ namespace Xan.ROR2VoidPlayerCharacterCommon.SurvivorHelper {
 			if (body.isPlayerControlled && Configuration.VoidTeamPlayers && XanVoidAPI.IsVoidSurvivor(body.bodyIndex)) {
 				Log.LogTrace("Player is a void survivor. Changing team to Void.");
 				body.teamComponent.teamIndex = TeamIndex.Void;
+				body.master.teamIndex = TeamIndex.Void;
 				if (body.inventory.GetItemCount(RoR2Content.Items.TeleportWhenOob) == 0) {
 					if (NetworkServer.active) {
 						body.inventory.GiveItem(RoR2Content.Items.TeleportWhenOob);
 						Log.LogTrace("Giving the void player the TeleportWhenOob item so they don't die when they fall out of the map.");
 					}
 				}
-				
+			} else if (!body.isPlayerControlled && Configuration.VoidTeamPlayers) {
+				if (body.master && (body.master.teamIndex == TeamIndex.Void || body.teamComponent.teamIndex == TeamIndex.Void)) {
+					Log.LogTrace("Something on the Void team spawned...");
+					BaseAI ai = body.masterObject.GetComponent<BaseAI>();
+					if (ai && ai.leader != null) {
+						Log.LogTrace("...which has an AI...");
+						if (ai.leader.gameObject) {
+							Log.LogTrace("...which has a leader...");
+							CharacterBody leaderBody = ai.leader.gameObject.GetComponent<CharacterBody>();
+							if (leaderBody && leaderBody.isPlayerControlled) {
+								Log.LogTrace("...that is also player controlled. Ensuring that it is voidtouched.");
+								body.master.teamIndex = TeamIndex.Void;
+								body.teamComponent.teamIndex = TeamIndex.Void;
+								body.inventory.SetEquipmentIndex(DLC1Content.Elites.Void.eliteEquipmentDef.equipmentIndex);
+							} else {
+								Log.LogTrace("...but it is not player controlled. Ignoring.");
+							}
+						} else {
+							Log.LogTrace("...but the AI has no leader. Ignoring.");
+						}
+					} else {
+						Log.LogTrace("But it is not an AI. Ignoring.");
+					}
+				}
 			} else {
 				Log.LogTrace($"Body ({body.baseNameToken}) is not allowed to go to Void team (isPlayerControlled={body.isPlayerControlled}, VoidTeamPlayers={Configuration.VoidTeamPlayers}, isVoidSurvivor={XanVoidAPI.IsVoidSurvivor(body.bodyIndex)})");
 			}
